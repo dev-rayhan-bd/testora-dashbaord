@@ -5,6 +5,7 @@ import {
   ELECTIVE_SUBJECTS,
   FACULTIES,
   getClassificationVariant,
+  getEntranceSubjectOptions,
   QUESTION_CATEGORIES,
   QUESTION_YEARS,
   SUBJECTS,
@@ -99,6 +100,7 @@ export default function ClassificationSection({ data, onChange }: Classification
     data.faculty && DEPARTMENTS_BY_FACULTY[data.faculty]
       ? DEPARTMENTS_BY_FACULTY[data.faculty]
       : [];
+  const entranceSubjectOptions = getEntranceSubjectOptions(data.faculty, data.department);
 
   return (
     <section className="rounded-lg border border-[#dce7f2] bg-white p-4">
@@ -136,6 +138,7 @@ export default function ClassificationSection({ data, onChange }: Classification
                 onChange={(v) => {
                   onChange("faculty", v);
                   onChange("department", "");
+                  onChange("subject", "");
                 }}
                 options={FACULTIES}
                 placeholder="Select faculty"
@@ -146,9 +149,22 @@ export default function ClassificationSection({ data, onChange }: Classification
               <FieldLabel>Department</FieldLabel>
               <FormSelect
                 value={data.department}
-                onChange={(v) => onChange("department", v)}
+                onChange={(v) => {
+                  onChange("department", v);
+                  onChange("subject", "");
+                }}
                 options={departmentOptions.length > 0 ? departmentOptions : ["—"]}
                 placeholder="Select department"
+              />
+            </div>
+
+            <div>
+              <FieldLabel>Subject</FieldLabel>
+              <FormSelect
+                value={data.subject}
+                onChange={(v) => onChange("subject", v)}
+                options={entranceSubjectOptions.length > 0 ? entranceSubjectOptions : ["—"]}
+                placeholder="Select subject"
               />
             </div>
           </>

@@ -61,7 +61,10 @@ export default function AddEditQuestionPage() {
       }
       // Reset department when faculty changes
       if (field === "faculty") {
-        return { ...prev, faculty: value, department: "" };
+        return { ...prev, faculty: value, department: "", subject: "" };
+      }
+      if (field === "department") {
+        return { ...prev, department: value, subject: "" };
       }
       return { ...prev, [field]: value };
     });

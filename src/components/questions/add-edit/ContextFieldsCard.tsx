@@ -17,7 +17,15 @@ export default function ContextFieldsCard() {
         <li className="flex items-start gap-1.5 text-[11px] text-[#4a7eb8]">
           <span className="mt-0.5 shrink-0">›</span>
           <span>
-            <span className="font-medium">Faculty &amp; Department:</span> for Entrance Exams
+            <span className="font-medium">Faculty, Department &amp; Subject:</span> for Entrance
+            Exams
+          </span>
+        </li>
+        <li className="flex items-start gap-1.5 text-[11px] text-[#4a7eb8]">
+          <span className="mt-0.5 shrink-0">›</span>
+          <span>
+            <span className="font-medium">Department-specific pools:</span> same subject names can
+            still map to different question difficulty by department
           </span>
         </li>
         <li className="flex items-start gap-1.5 text-[11px] text-[#4a7eb8]">
