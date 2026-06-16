@@ -115,16 +115,6 @@ export interface PassageItem {
   updatedAt: string;
 }
 
-export interface PassageListResponse {
-  meta: {
-    total: number;
-    page: number;
-    limit: number;
-    totalPages: number;
-  };
-  data: PassageItem[];
-}
-
 export interface PassageListParams {
   page?: number;
   limit?: number;
@@ -211,7 +201,7 @@ export const questionApi = baseApi.injectEndpoints({
       query: (params) => `/admin/questions/test-archive${buildArchiveQuery(params ?? undefined)}`,
       providesTags: ["Questions"],
     }),
-    getPassages: builder.query<ApiEnvelope<PassageListResponse>, PassageListParams | void>({
+    getPassages: builder.query<ApiEnvelope<PassageItem[]>, PassageListParams | void>({
       query: (params) => `/admin/questions/passages${buildPassageQuery(params ?? undefined)}`,
       providesTags: ["Questions"],
     }),
