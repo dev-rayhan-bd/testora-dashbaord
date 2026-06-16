@@ -1,17 +1,31 @@
-import { validationIssues, validationSummary } from "@/lib/import-data";
 import { cn } from "@/lib/utils";
 import { AlertTriangle, CheckCircle2, XCircle } from "lucide-react";
 
-export default function ValidationSummarySection() {
-  const { total, valid, warnings, errors } = validationSummary;
+export interface ValidationSummaryData {
+  totalRows: number;
+  validRows: number;
+  warnings: Array<{ row: number; level: string; message: string; field?: string }>;
+  errors: Array<{ row: number; level: string; message: string; field?: string }>;
+}
+
+type Props = {
+  summary: ValidationSummaryData;
+};
+
+export default function ValidationSummarySection({ summary }: Props) {
+  const { totalRows, validRows, warnings, errors } = summary;
+  const warningsCount = warnings?.length ?? 0;
+  const errorsCount = errors?.length ?? 0;
+
+  const allIssues = [
+    ...(errors || []).map((e) => ({ ...e, severity: "error" as const })),
+    ...(warnings || []).map((w) => ({ ...w, severity: "warning" as const })),
+  ];
 
   return (
     <section className="space-y-3">
-      {/* Step badge + title */}
+      {/* Title */}
       <div className="flex items-center gap-2">
-        <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-[#2f86d8] text-[10px] font-bold text-white">
-          3
-        </span>
         <h3 className="text-sm font-semibold text-[#3f5f7a]">Validation Summary</h3>
       </div>
 
@@ -21,7 +35,7 @@ export default function ValidationSummarySection() {
           <p className="text-[10px] font-semibold tracking-wide text-[#90a3b6] uppercase">
             Total Rows
           </p>
-          <p className="mt-1 text-2xl font-bold text-[#3f5f7a]">{total}</p>
+          <p className="mt-1 text-2xl font-bold text-[#3f5f7a]">{totalRows}</p>
         </div>
         <div className="rounded-lg border border-[#d0ecd9] bg-[#f0fbf5] p-3">
           <div className="flex items-center gap-1">
@@ -30,7 +44,7 @@ export default function ValidationSummarySection() {
               Valid
             </p>
           </div>
-          <p className="mt-1 text-2xl font-bold text-[#2d7a52]">{valid}</p>
+          <p className="mt-1 text-2xl font-bold text-[#2d7a52]">{validRows}</p>
         </div>
         <div className="rounded-lg border border-[#f0dfb9] bg-[#fffbea] p-3">
           <div className="flex items-center gap-1">
@@ -39,7 +53,7 @@ export default function ValidationSummarySection() {
               Warnings
             </p>
           </div>
-          <p className="mt-1 text-2xl font-bold text-[#9a6820]">{warnings}</p>
+          <p className="mt-1 text-2xl font-bold text-[#9a6820]">{warningsCount}</p>
         </div>
         <div className="rounded-lg border border-[#f4d7d7] bg-[#fdeeee] p-3">
           <div className="flex items-center gap-1">
@@ -48,18 +62,18 @@ export default function ValidationSummarySection() {
               Errors
             </p>
           </div>
-          <p className="mt-1 text-2xl font-bold text-[#b04040]">{errors}</p>
+          <p className="mt-1 text-2xl font-bold text-[#b04040]">{errorsCount}</p>
         </div>
       </div>
 
       {/* Issue list */}
-      {validationIssues.length > 0 && (
+      {allIssues.length > 0 && (
         <div className="rounded-lg border border-[#dce7f2] bg-white p-4">
           <h4 className="mb-3 text-xs font-semibold text-[#3f5f7a]">
-            Issues Detected ({validationIssues.length})
+            Issues Detected ({allIssues.length})
           </h4>
           <div className="space-y-2">
-            {validationIssues.map((issue, i) => (
+            {allIssues.map((issue, i) => (
               <div
                 key={i}
                 className={cn(
@@ -81,7 +95,7 @@ export default function ValidationSummarySection() {
                       issue.severity === "error" ? "text-[#b04040]" : "text-[#8a6120]"
                     )}
                   >
-                    Row {issue.row} · {issue.field}
+                    Row {issue.row} {issue.field ? `· ${issue.field}` : ""}
                   </span>
                   <span
                     className={cn(

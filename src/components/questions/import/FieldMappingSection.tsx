@@ -11,9 +11,6 @@ export default function FieldMappingSection() {
   return (
     <section className="rounded-lg border border-[#dce7f2] bg-white p-4">
       <div className="mb-3 flex items-center gap-2">
-        <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-[#2f86d8] text-[10px] font-bold text-white">
-          2
-        </span>
         <h3 className="text-sm font-semibold text-[#3f5f7a]">Field Mapping Preview</h3>
       </div>
       <p className="mb-3 text-xs text-[#90a3b6]">

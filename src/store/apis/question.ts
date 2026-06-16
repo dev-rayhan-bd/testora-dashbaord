@@ -180,10 +180,26 @@ export const questionApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: ["Questions"],
     }),
+    importQuestionsCsv: builder.mutation<ApiEnvelope<unknown>, File>({
+      query: (file) => {
+        const formData = new FormData();
+        formData.append("csv_file", file);
+        return {
+          url: "/admin/questions/import-csv",
+          method: "POST",
+          body: formData,
+        };
+      },
+      invalidatesTags: ["Questions"],
+    }),
   }),
 });
 
 export const { useGetQuestionsQuery, useGetSingleQuestionQuery, useLazyGetSingleQuestionQuery } =
   questionApi;
-export const { useGetQuestionOverviewQuery, useGetTestArchiveQuery, useCreatePassageMutation } =
-  questionApi;
+export const {
+  useGetQuestionOverviewQuery,
+  useGetTestArchiveQuery,
+  useCreatePassageMutation,
+  useImportQuestionsCsvMutation,
+} = questionApi;
