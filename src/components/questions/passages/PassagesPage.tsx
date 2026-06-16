@@ -1,7 +1,7 @@
 "use client";
 
-import { passageEntityFields, passageRows } from "@/lib/passages-data";
-import { useCreatePassageMutation } from "@/store/apis";
+import { passageEntityFields } from "@/lib/passages-data";
+import { getErrorMessage, useCreatePassageMutation, useGetPassagesQuery } from "@/store/apis";
 import {
   AlertTriangle,
   CheckCircle2,
@@ -11,8 +11,8 @@ import {
   Smartphone,
   Trash2,
   Upload,
-  XCircle,
   X,
+  XCircle,
 } from "lucide-react";
 import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
@@ -41,13 +41,7 @@ type AddPassageForm = {
   passageImage: File | null;
 };
 
-function AddPassageModal({
-  open,
-  onClose,
-}: {
-  open: boolean;
-  onClose: () => void;
-}) {
+function AddPassageModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [createPassage, { isLoading }] = useCreatePassageMutation();
   const [form, setForm] = useState<AddPassageForm>({
     passageCode: "",
@@ -74,7 +68,9 @@ function AddPassageModal({
         <div className="flex items-start justify-between border-b border-[#e6edf5] px-5 py-4">
           <div>
             <h3 className="text-xl font-semibold text-[#2f3f52]">Add Passage</h3>
-            <p className="text-xs text-[#8ea1b4]">Create a passage block and upload an optional image</p>
+            <p className="text-xs text-[#8ea1b4]">
+              Create a passage block and upload an optional image
+            </p>
           </div>
           <button
             type="button"
@@ -150,9 +146,7 @@ function AddPassageModal({
                         {form.passageImage?.name}
                       </p>
                       <p className="text-[11px] text-[#8ea1b4]">
-                        {form.passageImage
-                          ? `${Math.round(form.passageImage.size / 1024)} KB`
-                          : ""}
+                        {form.passageImage ? `${Math.round(form.passageImage.size / 1024)} KB` : ""}
                       </p>
                     </div>
                     <button
@@ -276,16 +270,29 @@ export default function PassagesPage() {
   const [openAdd, setOpenAdd] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
 
+  const { data, isLoading, isFetching, isError, error } = useGetPassagesQuery({
+    page: 1,
+    limit: 10,
+    searchTerm: search.trim() || undefined,
+  });
+
+  useEffect(() => {
+    if (!isError) return;
+    toast.error(getErrorMessage(error, "Unable to load passages."));
+  }, [error, isError]);
+
   const filteredRows = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return passageRows;
-    return passageRows.filter(
+    const passages = data?.data ?? [];
+    if (!q) return passages;
+    return passages.filter(
       (r) =>
-        r.id.toLowerCase().includes(q) ||
+        r._id.toLowerCase().includes(q) ||
+        r.passageCode.toLowerCase().includes(q) ||
         r.title.toLowerCase().includes(q) ||
-        r.range.toLowerCase().includes(q)
+        r.content.toLowerCase().includes(q)
     );
-  }, [search]);
+  }, [data, search]);
 
   return (
     <div className="space-y-3">
@@ -374,7 +381,10 @@ export default function PassagesPage() {
         <h3 className="mb-3 text-sm font-semibold text-[#3f5f7a]">Passage Entity Fields</h3>
         <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
           {passageEntityFields.map((field) => (
-            <div key={field.label} className="rounded-md border border-[#dce7f2] bg-[#f8fbff] p-2.5">
+            <div
+              key={field.label}
+              className="rounded-md border border-[#dce7f2] bg-[#f8fbff] p-2.5"
+            >
               <p className="text-xs font-semibold text-[#3f5f7a]">{field.label}</p>
               {field.desc && <p className="mt-0.5 text-[10px] text-[#90a3b6]">{field.desc}</p>}
             </div>
@@ -402,7 +412,11 @@ export default function PassagesPage() {
         </div>
       </section>
 
-      <PassageTable rows={filteredRows} onEdit={(id) => setEditId(id)} />
+      <PassageTable
+        rows={filteredRows}
+        isLoading={isLoading || isFetching}
+        onEdit={(id) => setEditId(id)}
+      />
 
       <AddPassageModal open={openAdd} onClose={() => setOpenAdd(false)} />
       <UpdatePassageModal open={!!editId} passageId={editId} onClose={() => setEditId(null)} />

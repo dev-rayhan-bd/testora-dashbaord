@@ -104,6 +104,33 @@ export interface TestArchiveParams {
   testType?: string;
 }
 
+export interface PassageItem {
+  _id: string;
+  passageCode: string;
+  title: string;
+  content: string;
+  passageImageUrl: string | null;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PassageListResponse {
+  meta: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
+  data: PassageItem[];
+}
+
+export interface PassageListParams {
+  page?: number;
+  limit?: number;
+  searchTerm?: string;
+}
+
 export interface CreatePassageRequest {
   passageCode: string;
   title: string;
@@ -118,6 +145,18 @@ function buildQuery(params?: QuestionListParams) {
   if (params.page) searchParams.set("page", String(params.page));
   if (params.limit) searchParams.set("limit", String(params.limit));
   if (params.examType) searchParams.set("examType", params.examType);
+  if (params.searchTerm) searchParams.set("searchTerm", params.searchTerm);
+
+  const query = searchParams.toString();
+  return query ? `?${query}` : "";
+}
+
+function buildPassageQuery(params?: PassageListParams) {
+  if (!params) return "";
+
+  const searchParams = new URLSearchParams();
+  if (params.page) searchParams.set("page", String(params.page));
+  if (params.limit) searchParams.set("limit", String(params.limit));
   if (params.searchTerm) searchParams.set("searchTerm", params.searchTerm);
 
   const query = searchParams.toString();
@@ -172,6 +211,10 @@ export const questionApi = baseApi.injectEndpoints({
       query: (params) => `/admin/questions/test-archive${buildArchiveQuery(params ?? undefined)}`,
       providesTags: ["Questions"],
     }),
+    getPassages: builder.query<ApiEnvelope<PassageListResponse>, PassageListParams | void>({
+      query: (params) => `/admin/questions/passages${buildPassageQuery(params ?? undefined)}`,
+      providesTags: ["Questions"],
+    }),
     createPassage: builder.mutation<ApiEnvelope<unknown>, CreatePassageRequest>({
       query: (body) => ({
         url: "/admin/questions/passage/add",
@@ -200,6 +243,7 @@ export const { useGetQuestionsQuery, useGetSingleQuestionQuery, useLazyGetSingle
 export const {
   useGetQuestionOverviewQuery,
   useGetTestArchiveQuery,
+  useGetPassagesQuery,
   useCreatePassageMutation,
   useImportQuestionsCsvMutation,
 } = questionApi;

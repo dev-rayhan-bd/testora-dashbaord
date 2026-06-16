@@ -1,5 +1,6 @@
 ﻿"use client";
 
+import { getErrorMessage } from "@/store/apis";
 import { useImportQuestionsCsvMutation } from "@/store/apis/question";
 import { X } from "lucide-react";
 import { useState } from "react";
@@ -7,6 +8,14 @@ import { toast } from "sonner";
 import FieldMappingSection from "./FieldMappingSection";
 import UploadFileSection from "./UploadFileSection";
 import ValidationSummarySection, { type ValidationSummaryData } from "./ValidationSummarySection";
+
+type ImportQuestionsResponse = {
+  success?: boolean;
+  message?: string;
+  data?: {
+    summary?: ValidationSummaryData | null;
+  };
+};
 
 export default function ImportQuestionsPage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -17,7 +26,7 @@ export default function ImportQuestionsPage() {
 
   const handleImport = async (file: File) => {
     try {
-      const response = await importCsv(file).unwrap();
+      const response = (await importCsv(file).unwrap()) as ImportQuestionsResponse;
       if (response.success) {
         toast.success(response.message || "Test and questions imported successfully.");
         setValidationSummary(null);
@@ -30,16 +39,14 @@ export default function ImportQuestionsPage() {
           toast.error(response.message || "Failed to import questions.");
         }
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error("Import error:", error);
-      const errorData = error?.data;
-      if (errorData?.data?.summary) {
+      const errorData = error as ImportQuestionsResponse;
+      if (errorData.data?.summary) {
         setValidationSummary(errorData.data.summary);
         toast.error(errorData.message || "Validation completed with errors.");
       } else {
-        toast.error(
-          errorData?.message || error?.message || "An unexpected error occurred during import."
-        );
+        toast.error(getErrorMessage(error, "An unexpected error occurred during import."));
       }
     }
   };
