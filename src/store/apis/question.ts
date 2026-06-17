@@ -145,6 +145,15 @@ function buildQuery(params?: QuestionListParams) {
   if (params.limit) searchParams.set("limit", String(params.limit));
   if (params.examType) searchParams.set("examType", params.examType);
   if (params.searchTerm) searchParams.set("searchTerm", params.searchTerm);
+  if (params.year) searchParams.set("year", String(params.year));
+  if (params.subjectName) searchParams.set("subjectName", params.subjectName);
+  if (params.questionText) searchParams.set("questionText", params.questionText);
+  if (params.facultyName) searchParams.set("facultyName", params.facultyName);
+  if (params.departmentName) searchParams.set("departmentName", params.departmentName);
+  if (params.passageId) searchParams.set("passageId", params.passageId);
+  if (params.access) searchParams.set("access", params.access);
+  if (params.difficultyLevel) searchParams.set("difficultyLevel", params.difficultyLevel);
+  if (params.status) searchParams.set("status", params.status);
 
   const query = searchParams.toString();
   return query ? `?${query}` : "";

@@ -8,17 +8,7 @@ import {
   type QuestionListItem,
   type SingleQuestionResponse,
 } from "@/store/apis";
-import {
-  ChevronDown,
-  Copy,
-  Eye,
-  Pencil,
-  Plus,
-  Search,
-  SlidersHorizontal,
-  Trash2,
-  X,
-} from "lucide-react";
+import { Copy, Eye, Pencil, Plus, Search, Trash2, X } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -53,6 +43,48 @@ function categoryBadgeClass(examType: string) {
 
 function Label(value: string | null) {
   return value ?? "—";
+}
+
+function generateYearOptions() {
+  const years: string[] = [""];
+  for (let year = 2024; year >= 2000; year--) {
+    years.push(String(year));
+  }
+  return years;
+}
+
+function FilterSelect({
+  value,
+  onChange,
+  options,
+  label,
+  placeholderValue,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  options: string[];
+  label: string;
+  placeholderValue?: string;
+}) {
+  return (
+    <label className="inline-flex shrink-0 items-center gap-1 rounded-md border border-[#dce7f2] bg-[#f8fbff] px-2.5 py-1.5 text-xs text-[#587189]">
+      <span className="whitespace-nowrap">{label}:</span>
+      <select
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className="min-w-0 bg-transparent text-xs font-medium text-[#3f5f7a] outline-none"
+      >
+        <option value="">{placeholderValue ?? "Any"}</option>
+        {options
+          .filter((opt) => opt !== "")
+          .map((option) => (
+            <option key={option} value={option}>
+              {option}
+            </option>
+          ))}
+      </select>
+    </label>
+  );
 }
 
 function SingleQuestionModal({
@@ -170,18 +202,41 @@ function SingleQuestionModal({
 export default function QuestionBankPage() {
   const [search, setSearch] = useState("");
   const [activeTab, setActiveTab] = useState("All");
+  const [examTypeFilter, setExamTypeFilter] = useState("");
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [yearFilter, setYearFilter] = useState("");
+  const [subjectFilter, setSubjectFilter] = useState("");
+  const [facultyFilter, setFacultyFilter] = useState("");
+  const [accessFilter, setAccessFilter] = useState("");
+  const [difficultyFilter, setDifficultyFilter] = useState("");
   const [selectedQuestion, setSelectedQuestion] = useState<{
     id: string | null;
     sl: number;
   } | null>(null);
 
+  const resetFilterState = () => {
+    setExamTypeFilter("");
+    setYearFilter("");
+    setSubjectFilter("");
+    setFacultyFilter("");
+    setAccessFilter("");
+    setDifficultyFilter("");
+    setActiveTab("All");
+    setPage(1);
+  };
+
   const { data, isLoading, isFetching, isError, error } = useGetQuestionsQuery({
     page,
     limit: rowsPerPage,
-    examType: activeTab === "All" ? undefined : activeTab,
+    examType: examTypeFilter || undefined,
     searchTerm: search.trim() || undefined,
+    year: yearFilter ? Number(yearFilter) : undefined,
+    subjectName: subjectFilter || undefined,
+    facultyName: facultyFilter || undefined,
+    access: accessFilter || undefined,
+    difficultyLevel: difficultyFilter || undefined,
+    status: activeTab === "All" ? undefined : activeTab,
   });
 
   const [loadQuestion, { data: singleQuestionResponse, isFetching: isQuestionFetching }] =
@@ -202,21 +257,8 @@ export default function QuestionBankPage() {
   }, [error, isError]);
 
   const questionList = useMemo(() => data?.data.questions ?? [], [data]);
-  const totalItems = data?.data?.meta.total ?? 0;
   const totalPages = data?.data?.meta.totalPages ?? 1;
   const safePage = Math.min(page, totalPages);
-
-  const statusCounts = useMemo(
-    () =>
-      STATUS_TABS.reduce<Record<string, number>>((acc, tab) => {
-        acc[tab.value] =
-          tab.value === "All"
-            ? totalItems
-            : questionList.filter((item) => item.status === tab.value).length;
-        return acc;
-      }, {}),
-    [questionList, totalItems]
-  );
 
   const rows = questionList;
 
@@ -253,27 +295,104 @@ export default function QuestionBankPage() {
             />
           </label>
 
-          <button
-            type="button"
-            className="inline-flex h-9 items-center gap-1.5 rounded-md border border-[#dce7f2] bg-[#f8fbff] px-3 text-xs font-medium text-[#587189]"
-          >
-            <SlidersHorizontal className="h-3.5 w-3.5" />
-            Filters
-          </button>
+          <FilterSelect
+            value={examTypeFilter}
+            onChange={(value) => {
+              setExamTypeFilter(value);
+              setPage(1);
+            }}
+            options={["", "semi_matura", "matura", "provime"]}
+            label="Exam Type"
+            placeholderValue="All"
+          />
+
+          <FilterSelect
+            value={yearFilter}
+            onChange={(value) => {
+              setYearFilter(value);
+              setPage(1);
+            }}
+            options={generateYearOptions()}
+            label="Year"
+            placeholderValue="All"
+          />
+
+          <FilterSelect
+            value={subjectFilter}
+            onChange={(value) => {
+              setSubjectFilter(value);
+              setPage(1);
+            }}
+            options={[
+              "",
+              "Mathematics",
+              "Physics",
+              "Chemistry",
+              "Biology",
+              "History",
+              "Geography",
+              "Albanian",
+              "English",
+            ]}
+            label="Subject"
+            placeholderValue="All"
+          />
+
+          <FilterSelect
+            value={facultyFilter}
+            onChange={(value) => {
+              setFacultyFilter(value);
+              setPage(1);
+            }}
+            options={[
+              "",
+              "Faculty of Engineering",
+              "Faculty of Natural Sciences",
+              "Faculty of Medicine",
+              "Faculty of Economics",
+              "Faculty of Law",
+              "Faculty of Social Sciences",
+            ]}
+            label="Faculty"
+            placeholderValue="All"
+          />
+
+          <FilterSelect
+            value={accessFilter}
+            onChange={(value) => {
+              setAccessFilter(value);
+              setPage(1);
+            }}
+            options={["", "free", "premium"]}
+            label="Access"
+            placeholderValue="All"
+          />
+
+          <FilterSelect
+            value={difficultyFilter}
+            onChange={(value) => {
+              setDifficultyFilter(value);
+              setPage(1);
+            }}
+            options={["", "easy", "medium", "hard"]}
+            label="Difficulty"
+            placeholderValue="All"
+          />
 
           <button
             type="button"
-            className="inline-flex h-9 items-center gap-1.5 rounded-md border border-[#dce7f2] bg-[#f8fbff] px-3 text-xs font-medium text-[#587189]"
+            onClick={resetFilterState}
+            className="inline-flex h-9 items-center gap-1.5 rounded-md border border-[#dce7f2] bg-[#f8fbff] px-3 text-xs font-medium text-[#587189] hover:bg-[#f0f5fa]"
           >
-            Bulk Actions
-            <ChevronDown className="h-3 w-3" />
+            <X className="h-3.5 w-3.5" />
+            Clear Filters
           </button>
         </div>
 
         <div className="flex flex-wrap gap-1.5">
           {STATUS_TABS.map((tab) => {
             const isActive = tab.value === activeTab;
-            const count = statusCounts[tab.value] ?? 0;
+
             return (
               <button
                 key={tab.value}
@@ -290,14 +409,6 @@ export default function QuestionBankPage() {
                 )}
               >
                 {tab.label}
-                <span
-                  className={cn(
-                    "rounded-sm px-1 text-[10px]",
-                    isActive ? "bg-[#d6eaf9] text-[#2f86d8]" : "bg-[#e8eef5] text-[#90a3b6]"
-                  )}
-                >
-                  {count}
-                </span>
               </button>
             );
           })}
