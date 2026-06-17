@@ -29,7 +29,7 @@ export default function TestArchivePage() {
 
   const filteredRows = useMemo(() => {
     const query = search.trim().toLowerCase();
-    const rows = (data?.data.tests ?? []).map(mapTest);
+    const rows = (data?.data ?? []).map(mapTest);
     if (!query) return rows;
     return rows.filter(
       (row) =>

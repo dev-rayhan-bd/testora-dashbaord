@@ -100,13 +100,15 @@ export interface TestArchiveItem {
 }
 
 export interface TestArchiveResponse {
+  success: boolean;
+  message: string;
   meta: {
     total: number;
     page: number;
     limit: number;
     totalPages: number;
   };
-  tests: TestArchiveItem[];
+  data: TestArchiveItem[];
 }
 
 export interface TestArchiveParams {
@@ -217,7 +219,7 @@ export const questionApi = baseApi.injectEndpoints({
       query: () => "/admin/questions/overview",
       providesTags: ["Questions"],
     }),
-    getTestArchive: builder.query<ApiEnvelope<TestArchiveResponse>, TestArchiveParams | void>({
+    getTestArchive: builder.query<TestArchiveResponse, TestArchiveParams | void>({
       query: (params) => `/admin/questions/test-archive${buildArchiveQuery(params ?? undefined)}`,
       providesTags: ["Questions"],
     }),
