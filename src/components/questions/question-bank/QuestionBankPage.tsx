@@ -256,8 +256,8 @@ export default function QuestionBankPage() {
     toast.error(message);
   }, [error, isError]);
 
-  const questionList = useMemo(() => data?.data.questions ?? [], [data]);
-  const totalPages = data?.data?.meta.totalPages ?? 1;
+  const questionList = useMemo(() => data?.data ?? [], [data]);
+  const totalPages = data?.meta?.totalPages ?? 1;
   const safePage = Math.min(page, totalPages);
 
   const rows = questionList;
@@ -557,7 +557,7 @@ export default function QuestionBankPage() {
         </div>
 
         <Pagination
-          totalItems={data?.data.meta.total ?? 0}
+          totalItems={data?.meta.total ?? 0}
           page={safePage}
           rowsPerPage={rowsPerPage}
           onPageChange={setPage}

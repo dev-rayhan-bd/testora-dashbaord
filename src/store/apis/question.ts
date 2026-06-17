@@ -17,13 +17,15 @@ export interface QuestionListItem {
 }
 
 export interface QuestionListResponse {
+  success: boolean;
+  message: string;
   meta: {
     total: number;
     page: number;
     limit: number;
     totalPages: number;
   };
-  questions: QuestionListItem[];
+  data: QuestionListItem[];
 }
 
 export interface QuestionOption {
@@ -203,7 +205,7 @@ function buildPassageFormData(body: CreatePassageRequest) {
 
 export const questionApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
-    getQuestions: builder.query<ApiEnvelope<QuestionListResponse>, QuestionListParams | void>({
+    getQuestions: builder.query<QuestionListResponse, QuestionListParams | void>({
       query: (params) => `/admin/questions${buildQuery(params ?? undefined)}`,
       providesTags: ["Auth"],
     }),
