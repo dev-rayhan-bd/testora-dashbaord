@@ -102,12 +102,12 @@ export default function UserManagementPage() {
 
   const planOptions = useMemo(() => {
     const availablePlans = Array.from(
-      new Set((usersResponse?.data.data ?? []).map((user) => user.plan).filter(Boolean))
+      new Set((usersResponse?.data ?? []).map((user) => user.plan).filter(Boolean))
     ) as string[];
     return ["All", ...availablePlans];
   }, [usersResponse]);
 
-  const users = useMemo(() => (usersResponse?.data?.data ?? []).map(mapUser), [usersResponse]);
+  const users = useMemo(() => (usersResponse?.data ?? []).map(mapUser), [usersResponse]);
 
   const stats = useMemo(
     () => ({
@@ -119,8 +119,8 @@ export default function UserManagementPage() {
     [overviewResponse]
   );
 
-  const totalItems = usersResponse?.data?.meta?.total ?? 0;
-  const totalPages = usersResponse?.data?.meta?.totalPages ?? 1;
+  const totalItems = usersResponse?.meta?.total ?? 0;
+  const totalPages = usersResponse?.meta?.totalPages ?? 1;
   const safePage = Math.min(page, totalPages);
   const isLoading = isOverviewLoading || isUsersLoading;
   const isRefreshing = isUsersFetching && !isUsersLoading;
@@ -184,9 +184,7 @@ export default function UserManagementPage() {
             onDeactivateUser={(user) =>
               toast.info(`Deactivate flow for ${user.name} is not wired yet.`)
             }
-            onArchiveUser={(user) =>
-              toast.info(`Archive flow for ${user.name} is not wired yet.`)
-            }
+            onArchiveUser={(user) => toast.info(`Archive flow for ${user.name} is not wired yet.`)}
           />
         </div>
       )}

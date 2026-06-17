@@ -59,8 +59,17 @@ export interface SingleQuestionResponse {
 export interface QuestionListParams {
   page?: number;
   limit?: number;
-  examType?: string;
   searchTerm?: string;
+  examType?: string;
+  year?: number;
+  subjectName?: string;
+  questionText?: string;
+  facultyName?: string;
+  departmentName?: string;
+  passageId?: string;
+  access?: string;
+  difficultyLevel?: string;
+  status?: string;
 }
 
 export interface QuestionOverviewData {

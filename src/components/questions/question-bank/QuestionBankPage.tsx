@@ -51,34 +51,32 @@ function categoryBadgeClass(examType: string) {
   return "border-[#dee8f2] bg-[#f2f6fb] text-[#6d839a]";
 }
 
-function difficultyBadgeClass(level: string) {
-  if (level === "easy") return "border-[#d0ecd9] bg-[#e9f8ef] text-[#3ea666]";
-  if (level === "medium") return "border-[#f0dfb9] bg-[#fff3da] text-[#c48a2e]";
-  return "border-[#f4d7d7] bg-[#fdeeee] text-[#db6f6f]";
-}
-
-function passageLabel(passageCode: string | null) {
-  return passageCode ?? "—";
+function Label(value: string | null) {
+  return value ?? "—";
 }
 
 function SingleQuestionModal({
   open,
+  sl,
   question,
   onClose,
 }: {
   open: boolean;
+  sl: number;
   question: SingleQuestionResponse | null;
   onClose: () => void;
 }) {
   if (!open || !question) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#2d4056]/30 p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#2d4056]/30 p-4 capitalize">
       <div className="w-full max-w-3xl rounded-2xl border border-[#dce7f2] bg-white">
         <div className="flex items-start justify-between border-b border-[#e6edf5] px-5 py-4">
           <div>
             <h3 className="text-xl font-semibold text-[#2f3f52]">Question Details</h3>
-            <p className="text-xs text-[#8ea1b4]">{question.questionId}</p>
+            <p className="text-xs text-[#8ea1b4]">
+              SL No. {sl} | Question ID: {question?.questionId}
+            </p>
           </div>
           <button
             type="button"
@@ -93,33 +91,29 @@ function SingleQuestionModal({
         <div className="space-y-4 px-5 py-4 text-sm">
           <div>
             <p className="mb-1 text-xs text-[#8ea1b4]">Question Text</p>
-            <p className="font-medium text-[#4f6d87]">{question.questionText}</p>
+            <p className="font-medium text-[#4f6d87]">{Label(question.questionText)}</p>
           </div>
 
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
             <div>
               <p className="text-xs text-[#8ea1b4]">Exam Type</p>
-              <p className="font-medium text-[#4f6d87]">{question.examType}</p>
+              <p className="font-medium text-[#4f6d87]">{Label(question.examType)}</p>
             </div>
             <div>
               <p className="text-xs text-[#8ea1b4]">Year</p>
-              <p className="font-medium text-[#4f6d87]">{question.year}</p>
+              <p className="font-medium text-[#4f6d87]">{Label(question.year.toString())}</p>
             </div>
             <div>
               <p className="text-xs text-[#8ea1b4]">Subject</p>
-              <p className="font-medium text-[#4f6d87]">{question.subjectName}</p>
+              <p className="font-medium text-[#4f6d87]">{Label(question.subjectName)}</p>
             </div>
             <div>
               <p className="text-xs text-[#8ea1b4]">Faculty</p>
-              <p className="font-medium text-[#4f6d87]">{question.facultyName}</p>
-            </div>
-            <div>
-              <p className="text-xs text-[#8ea1b4]">Difficulty</p>
-              <p className="font-medium text-[#4f6d87]">{question.difficultyLevel}</p>
+              <p className="font-medium text-[#4f6d87]">{Label(question.facultyName)}</p>
             </div>
             <div>
               <p className="text-xs text-[#8ea1b4]">Access</p>
-              <p className="font-medium text-[#4f6d87]">{question.access}</p>
+              <p className="font-medium text-[#4f6d87]">{Label(question.access)}</p>
             </div>
           </div>
 
@@ -178,7 +172,10 @@ export default function QuestionBankPage() {
   const [activeTab, setActiveTab] = useState("All");
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
-  const [selectedQuestion, setSelectedQuestion] = useState<string | null>(null);
+  const [selectedQuestion, setSelectedQuestion] = useState<{
+    id: string | null;
+    sl: number;
+  } | null>(null);
 
   const { data, isLoading, isFetching, isError, error } = useGetQuestionsQuery({
     page,
@@ -191,9 +188,9 @@ export default function QuestionBankPage() {
     useLazyGetSingleQuestionQuery();
 
   useEffect(() => {
-    if (!selectedQuestion) return;
-    loadQuestion(selectedQuestion);
-  }, [loadQuestion, selectedQuestion]);
+    if (!selectedQuestion?.id) return;
+    loadQuestion(selectedQuestion?.id);
+  }, [loadQuestion, selectedQuestion?.id]);
 
   useEffect(() => {
     if (!isError) return;
@@ -205,8 +202,8 @@ export default function QuestionBankPage() {
   }, [error, isError]);
 
   const questionList = useMemo(() => data?.data.questions ?? [], [data]);
-  const totalItems = data?.data.meta.total ?? 0;
-  const totalPages = data?.data.meta.totalPages ?? 1;
+  const totalItems = data?.data?.meta.total ?? 0;
+  const totalPages = data?.data?.meta.totalPages ?? 1;
   const safePage = Math.min(page, totalPages);
 
   const statusCounts = useMemo(
@@ -312,16 +309,15 @@ export default function QuestionBankPage() {
           <table className="w-full min-w-300 text-left">
             <thead className="bg-[#f3f7fb] text-[11px] font-medium tracking-wide text-[#6f859b] uppercase">
               <tr>
-                <th className="px-4 py-2.5">ID</th>
+                <th className="px-4 py-2.5">SL</th>
                 <th className="px-4 py-2.5">Exam Type</th>
-                <th className="px-4 py-2.5">Category</th>
                 <th className="px-4 py-2.5">Year</th>
                 <th className="px-4 py-2.5">Subject</th>
                 <th className="px-4 py-2.5">Faculty</th>
-                <th className="px-4 py-2.5">Difficulty</th>
+                {/* <th className="px-4 py-2.5">Difficulty</th> */}
                 <th className="px-4 py-2.5">Access</th>
                 <th className="px-4 py-2.5">Created At</th>
-                <th className="px-4 py-2.5">Passage</th>
+                <th className="px-4 py-2.5">Passage Code</th>
                 <th className="max-w-50 px-4 py-2.5">Question Text</th>
                 <th className="px-4 py-2.5">Correct</th>
                 <th className="px-4 py-2.5">Status</th>
@@ -338,37 +334,61 @@ export default function QuestionBankPage() {
                 </tr>
               ) : null}
 
-              {rows.map((row: QuestionListItem) => (
+              {rows.map((row: QuestionListItem, index) => (
                 <tr
                   key={row._id}
-                  className="border-b border-[#ecf2f8] text-xs text-[#5e768e] last:border-b-0 hover:bg-[#f8fbff]"
+                  className="border-b border-[#ecf2f8] text-xs text-[#5e768e] capitalize last:border-b-0 hover:bg-[#f8fbff]"
                 >
-                  <td className="px-4 py-2.5 font-semibold text-[#2f86d8]">{row._id}</td>
+                  <td className="px-4 py-2.5 font-semibold text-[#2f86d8]">
+                    {(page - 1) * rowsPerPage + index + 1}
+                  </td>
                   <td className="px-4 py-2.5">
-                    <span className={cn("rounded-sm border px-2 py-0.5 text-[11px]", categoryBadgeClass(row.examType))}>
+                    <span
+                      className={cn(
+                        "rounded-sm border px-2 py-0.5 text-[11px]",
+                        categoryBadgeClass(row.examType)
+                      )}
+                    >
                       {row.examType}
                     </span>
                   </td>
-                  <td className="px-4 py-2.5">{row.examType}</td>
-                  <td className="px-4 py-2.5">{row.year}</td>
-                  <td className="px-4 py-2.5">{row.subjectName}</td>
-                  <td className="px-4 py-2.5 text-[#90a3b6]">{row.facultyName}</td>
-                  <td className="px-4 py-2.5">
-                    <span className={cn("rounded-sm border px-2 py-0.5 text-[11px]", difficultyBadgeClass(row.difficultyLevel))}>
+
+                  <td className="px-4 py-2.5">{Label(row.year.toString())}</td>
+                  <td className="px-4 py-2.5">{Label(row.subjectName)}</td>
+                  <td className="px-4 py-2.5">{Label(row.facultyName)}</td>
+                  {/* <td className="px-4 py-2.5">
+                    <span
+                      className={cn(
+                        "rounded-sm border px-2 py-0.5 text-[11px]",
+                        difficultyBadgeClass(row.difficultyLevel)
+                      )}
+                    >
                       {row.difficultyLevel}
                     </span>
-                  </td>
+                  </td> */}
                   <td className="px-4 py-2.5">
-                    <span className={cn("rounded-sm border px-2 py-0.5 text-[11px]", accessBadgeClass(row.access))}>
+                    <span
+                      className={cn(
+                        "rounded-sm border px-2 py-0.5 text-[11px]",
+                        accessBadgeClass(row.access)
+                      )}
+                    >
                       {row.access}
                     </span>
                   </td>
                   <td className="px-4 py-2.5">{new Date(row.createdAt).toLocaleDateString()}</td>
-                  <td className="px-4 py-2.5 text-[#90a3b6]">{passageLabel(row.passageCode)}</td>
-                  <td className="max-w-50 truncate px-4 py-2.5">{row.questionText}</td>
-                  <td className="px-4 py-2.5 font-semibold text-[#3ea666]">{row.correctOptionIndex + 1}</td>
+                  <td className="px-4 py-2.5 text-[#90a3b6]">{Label(row.passageCode)}</td>
+                  <td className="max-w-50 truncate px-4 py-2.5">{Label(row.questionText)}</td>
+                  <td className="px-4 py-2.5 font-semibold text-[#3ea666]">
+                    {row.correctOptionIndex + 1}
+                  </td>
                   <td className="px-4 py-2.5">
-                    <span className={cn("inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px]", statusBadgeClass(row.status))}>
+                    <span
+                      className={cn(
+                        "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px]",
+                        statusBadgeClass(row.status)
+                      )}
+                    >
                       <span className="h-1.5 w-1.5 rounded-full bg-current" />
                       {row.status}
                     </span>
@@ -378,7 +398,12 @@ export default function QuestionBankPage() {
                       <button
                         type="button"
                         aria-label="View question"
-                        onClick={() => setSelectedQuestion(row._id)}
+                        onClick={() =>
+                          setSelectedQuestion({
+                            id: row._id,
+                            sl: (page - 1) * rowsPerPage + index + 1,
+                          })
+                        }
                         className="rounded p-1 hover:bg-[#f3f7fb] hover:text-[#2f86d8]"
                       >
                         <Eye className="h-3.5 w-3.5" />
@@ -433,7 +458,8 @@ export default function QuestionBankPage() {
       </section>
 
       <SingleQuestionModal
-        open={!!selectedQuestion}
+        open={!!selectedQuestion?.id}
+        sl={selectedQuestion?.sl ?? 0}
         question={singleQuestionResponse?.data ?? null}
         onClose={() => setSelectedQuestion(null)}
       />

@@ -20,6 +20,9 @@ export interface AdminUserListItem {
 }
 
 export interface AdminUserListResponse {
+  statusCode: number;
+  success: boolean;
+  message: string;
   meta: {
     page: number;
     limit: number;
@@ -58,7 +61,7 @@ export const userApi = baseApi.injectEndpoints({
       query: () => "/admin/users/overview",
       providesTags: ["Users"],
     }),
-    getUserList: builder.query<ApiEnvelope<AdminUserListResponse>, UserListParams | void>({
+    getUserList: builder.query<AdminUserListResponse, UserListParams | void>({
       query: (params) => `/admin/users/list${buildQuery(params ?? undefined)}`,
       providesTags: ["Users"],
     }),
