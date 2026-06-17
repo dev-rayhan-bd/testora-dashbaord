@@ -437,19 +437,21 @@ export default function QuestionBankPage() {
             </thead>
 
             <tbody>
-              {(isLoading || isFetching) && rows.length === 0 ? (
-                <tr>
-                  <td colSpan={14} className="px-5 py-10 text-center text-sm text-[#90a3b6]">
-                    Loading questions...
-                  </td>
-                </tr>
-              ) : null}
-
-              {rows.map((row: QuestionListItem, index) => (
-                <tr
-                  key={row._id}
-                  className="border-b border-[#ecf2f8] text-xs text-[#5e768e] capitalize last:border-b-0 hover:bg-[#f8fbff]"
-                >
+              {(isLoading || isFetching) && rows.length === 0
+                ? Array.from({ length: 5 }).map((_, i) => (
+                    <tr key={i} className="animate-pulse border-b border-[#ecf2f8]">
+                      {Array.from({ length: 12 }).map((__, j) => (
+                        <td key={j} className="px-4 py-3">
+                          <div className="h-3 rounded bg-[#e8f0f8]" />
+                        </td>
+                      ))}
+                    </tr>
+                  ))
+                : rows.map((row: QuestionListItem, index) => (
+                    <tr
+                      key={row._id}
+                      className="border-b border-[#ecf2f8] text-xs text-[#5e768e] capitalize last:border-b-0 hover:bg-[#f8fbff]"
+                    >
                   <td className="px-4 py-2.5 font-semibold text-[#2f86d8]">
                     {(page - 1) * rowsPerPage + index + 1}
                   </td>

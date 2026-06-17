@@ -96,11 +96,7 @@ export default function TestArchivePage() {
         </div>
       </section>
 
-      {isLoading ? (
-        <div className="h-52 animate-pulse rounded-lg border border-[#dce7f2] bg-white" />
-      ) : null}
-
-      {isError ? null : <TestArchiveTable rows={filteredRows} startIndex={0} />}
+      { isError ? null : <TestArchiveTable rows={filteredRows} startIndex={0} isLoading={isLoading} />}
       <DuplicateToolsSection />
     </div>
   );
