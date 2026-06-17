@@ -8,6 +8,22 @@ type PaginationProps = {
   onRowsPerPageChange: (rows: number) => void;
 };
 
+function getPageNumbers(current: number, total: number): (number | string)[] {
+  if (total <= 5) {
+    return Array.from({ length: total }, (_, i) => i + 1);
+  }
+
+  if (current <= 3) {
+    return [1, 2, 3, 4, 5, "...", total];
+  }
+
+  if (current >= total - 2) {
+    return [1, "...", total - 4, total - 3, total - 2, total - 1, total];
+  }
+
+  return [1, "...", current - 1, current, current + 1, "...", total];
+}
+
 export default function Pagination({
   totalItems,
   page,
@@ -18,6 +34,7 @@ export default function Pagination({
   const totalPages = Math.max(1, Math.ceil(totalItems / rowsPerPage));
   const start = totalItems === 0 ? 0 : (page - 1) * rowsPerPage + 1;
   const end = Math.min(page * rowsPerPage, totalItems);
+  const pageNumbers = getPageNumbers(page, totalPages);
 
   return (
     <div className="flex flex-col gap-2 border-t border-[#dce7f2] px-4 py-3 text-xs text-[#6f859b] sm:flex-row sm:items-center sm:justify-between sm:px-5">
@@ -52,24 +69,27 @@ export default function Pagination({
           <ChevronLeft className="h-3.5 w-3.5" />
         </button>
 
-        {Array.from({ length: totalPages }).map((_, index) => {
-          const pageNumber = index + 1;
-          const isActive = pageNumber === page;
-          return (
-            <button
-              key={pageNumber}
-              type="button"
-              onClick={() => onPageChange(pageNumber)}
-              className={
-                isActive
-                  ? "inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#2f86d8] bg-[#2f86d8] text-white"
-                  : "inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#dce7f2] bg-white text-[#6f859b]"
+        {pageNumbers.map((pageNumber, index) => (
+          <button
+            key={index}
+            type="button"
+            onClick={() => {
+              if (typeof pageNumber === "number") {
+                onPageChange(pageNumber);
               }
-            >
-              {pageNumber}
-            </button>
-          );
-        })}
+            }}
+            disabled={pageNumber === "..."}
+            className={
+              pageNumber === page
+                ? "inline-flex h-7 min-w-7 items-center justify-center rounded-md border border-[#2f86d8] bg-[#2f86d8] px-1.5 text-white disabled:cursor-default"
+                : pageNumber === "..."
+                  ? "inline-flex h-7 min-w-7 items-center justify-center text-[#90a3b6] disabled:cursor-default"
+                  : "inline-flex h-7 min-w-7 items-center justify-center rounded-md border border-[#dce7f2] bg-white px-1.5 text-[#6f859b]"
+            }
+          >
+            {pageNumber}
+          </button>
+        ))}
 
         <button
           type="button"
