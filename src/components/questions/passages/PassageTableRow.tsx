@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
 import { type PassageItem } from "@/store/apis/question";
-import { Copy, Eye, Pencil, Trash2 } from "lucide-react";
+import { Copy, Pencil, Trash2 } from "lucide-react";
 import Image from "next/image";
 
 function statusClass(isActive: boolean) {
@@ -58,9 +58,6 @@ export default function PassageTableRow({
       <td className="px-3 py-2.5 text-[#8ea1b4]">{new Date(row.createdAt).toLocaleDateString()}</td>
       <td className="px-3 py-2.5">
         <div className="flex items-center gap-2">
-          <button type="button" title="View" className="text-[#9ab0c3] hover:text-[#4a93d9]">
-            <Eye className="h-3.5 w-3.5" />
-          </button>
           <button
             type="button"
             title="Edit"

@@ -3,9 +3,10 @@ import ArchiveRow from "./ArchiveRow";
 
 type Props = {
   rows: TestArchiveRow[];
+  startIndex: number;
 };
 
-export default function TestArchiveTable({ rows }: Props) {
+export default function TestArchiveTable({ rows, startIndex }: Props) {
   return (
     <section className="overflow-hidden rounded-lg border border-[#dce7f2] bg-white">
       <div className="overflow-x-auto">
@@ -25,8 +26,8 @@ export default function TestArchiveTable({ rows }: Props) {
             </tr>
           </thead>
           <tbody>
-            {rows.map((row) => (
-              <ArchiveRow key={row.id} row={row} />
+            {rows.map((row, index) => (
+              <ArchiveRow key={row.id} row={row} serialNumber={startIndex + index + 1} />
             ))}
             {rows.length === 0 && (
               <tr>

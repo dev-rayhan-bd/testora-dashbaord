@@ -20,10 +20,10 @@ function typeClass(type: TestArchiveRow["type"]) {
     : "border-[#d6e5f4] bg-[#eaf2fb] text-[#4d93d9]";
 }
 
-export default function ArchiveRow({ row }: { row: TestArchiveRow }) {
+export default function ArchiveRow({ row, serialNumber }: { row: TestArchiveRow; serialNumber: number }) {
   return (
     <tr className="border-b border-[#ecf2f8] text-xs text-[#5e768e] last:border-b-0 hover:bg-[#f8fbff]">
-      <td className="px-4 py-2.5 font-semibold text-[#2f86d8]">{row.id}</td>
+      <td className="px-4 py-2.5 font-semibold text-[#2f86d8]">{serialNumber}</td>
       <td className="px-4 py-2.5 font-medium text-[#4f6d87]">{row.title}</td>
       <td className="px-4 py-2.5">{row.category}</td>
       <td className="px-4 py-2.5">{row.year}</td>
