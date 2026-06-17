@@ -2,13 +2,13 @@
 
 import { cn } from "@/lib/utils";
 import { getErrorMessage, useLoginMutation } from "@/store/apis";
-import { useAppDispatch } from "@/store/hooks";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { setCredentials } from "@/store/slices/authSlice";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { AlertCircle, Eye, EyeOff, Lock, User } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -23,8 +23,15 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 export default function LoginPage() {
   const router = useRouter();
   const dispatch = useAppDispatch();
+  const isAuthenticated = useAppSelector((state) => state.auth.isAuthenticated);
   const [showPassword, setShowPassword] = useState(false);
   const [login, { isLoading: isLoggingIn }] = useLoginMutation();
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      router.replace("/dashboard");
+    }
+  }, [isAuthenticated, router]);
 
   const {
     register,
@@ -51,6 +58,7 @@ export default function LoginPage() {
         if (response.data.refreshToken) {
           window.localStorage.setItem("refreshToken", response.data.refreshToken);
         }
+        document.cookie = `auth=true; path=/; max-age=${60 * 60 * 24 * 7}`;
       }
 
       dispatch(
@@ -70,6 +78,8 @@ export default function LoginPage() {
   };
 
   const isSubmittingForm = isSubmitting || isLoggingIn;
+
+  if (isAuthenticated) return null;
 
   return (
     <div className="w-full max-w-100">
