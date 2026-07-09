@@ -30,10 +30,10 @@ export default function DashboardHeader({ onOpenSidebar }: DashboardHeaderProps)
           <div className="flex items-center gap-3">
             <div className="hidden text-right sm:block">
               <p className="text-sm font-semibold text-[#3f5f7a] leading-tight">
-                {user.name || "Admin"}
+                {user.name || "-"}
               </p>
-              <p className="mt-0.5 text-[10px] font-bold uppercase tracking-wider text-[#7087a0] leading-tight">
-                {user.role || "Administrator"}
+              <p className="mt-0.5 text-[10px] font-medium text-[#7087a0] leading-tight">
+                {user.email || "-"}
               </p>
             </div>
             <div className="relative flex h-9 w-9 items-center justify-center overflow-hidden rounded-full border border-[#bad3ea] bg-white shadow-sm">

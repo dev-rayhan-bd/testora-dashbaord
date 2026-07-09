@@ -1,10 +1,10 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
 interface User {
-  id: string;
+  id?: string;
   name: string;
   email: string;
-  role: string;
+  role?: string;
   avatar?: string;
 }
 
@@ -47,6 +47,9 @@ const authSlice = createSlice({
       state.error = action.payload;
       state.isLoading = false;
     },
+    updateUser: (state, action: PayloadAction<User>) => {
+      state.user = action.payload;
+    },
     logout: (state) => {
       state.user = null;
       state.token = null;
@@ -57,5 +60,5 @@ const authSlice = createSlice({
   },
 });
 
-export const { setCredentials, setLoading, setError, logout } = authSlice.actions;
+export const { setCredentials, setLoading, setError, updateUser, logout } = authSlice.actions;
 export default authSlice.reducer;

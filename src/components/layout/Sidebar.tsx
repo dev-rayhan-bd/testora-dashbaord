@@ -34,6 +34,20 @@ type SidebarProps = {
 export default function Sidebar({ open = false, onClose }: SidebarProps) {
   const pathname = usePathname();
 
+  const handleLogout = () => {
+    // Clear localStorage
+    if (typeof window !== "undefined") {
+      window.localStorage.removeItem("accessToken");
+      window.localStorage.removeItem("refreshToken");
+      // Clear auth cookie
+      document.cookie = "auth=; path=/; max-age=0";
+    }
+
+    // Hard reload to login page to completely unmount dashboard and clear all state
+    // This prevents race conditions with pending API calls
+    window.location.href = "/login";
+  };
+
   const isActive = (href: string) => pathname === href || pathname.startsWith(href + "/");
 
   return (
@@ -114,6 +128,7 @@ export default function Sidebar({ open = false, onClose }: SidebarProps) {
           </Link>
           <button
             type="button"
+            onClick={handleLogout}
             className="flex w-full items-center gap-3 rounded-md border border-transparent px-3 py-2 text-left text-[13px] font-medium text-[#557089] transition-colors hover:border-[#bfd6eb] hover:bg-[#edf4fb] hover:text-[#3f5f7a]"
           >
             <LogOut className="h-4 w-4 shrink-0" />
