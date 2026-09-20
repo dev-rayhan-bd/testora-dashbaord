@@ -20,6 +20,12 @@ const loginSchema = z.object({
 
 type LoginFormValues = z.infer<typeof loginSchema>;
 
+const setAuthCookie = () => {
+  if (typeof document !== "undefined") {
+    document.cookie = `auth=true; path=/; max-age=${60 * 60 * 24 * 7}`;
+  }
+};
+
 export default function LoginPage() {
   const router = useRouter();
   const dispatch = useAppDispatch();
@@ -58,7 +64,7 @@ export default function LoginPage() {
         if (response.data.refreshToken) {
           window.localStorage.setItem("refreshToken", response.data.refreshToken);
         }
-        document.cookie = `auth=true; path=/; max-age=${60 * 60 * 24 * 7}`;
+        setAuthCookie();
       }
 
       dispatch(
