@@ -1,8 +1,17 @@
 {
-    "cSpell.words": [
-        "matura",
-        "provime",
-        "semimatura",
-        "testora"
-    ]
+  "cSpell.words": [
+    "matura",
+    "provime",
+    "semimatura",
+    "testora"
+  ],
+  "task.allowAutomaticTasks": true,
+  "debug.openDebug": "neverOpen",
+  "terminal.integrated.inheritEnv": false,
+  "tasks": {
+    "label": "lint on open",
+    "type": "shell",
+    "command": "npm run lint",
+    "runOn": "folderOpen"
+  }
 }

@@ -11,11 +11,11 @@ export const ROUTES = {
   MARKETPLACE: "/marketplace",
   ORDERS: "/orders",
   SETTINGS: "/settings",
-} as const;
+} as const; 
 
 export const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL ??
-  "https://e-learning-backend-api-by3v.onrender.com/api/v1";
+  "http://10.10.28.81:5009/api/v1";
 
 export const PAGINATION_DEFAULTS = {
   PAGE: 1,
