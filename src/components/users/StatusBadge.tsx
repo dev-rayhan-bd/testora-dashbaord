@@ -2,25 +2,38 @@ import { cn } from "@/lib/utils";
 import type { UserStatus } from "@/types";
 
 type StatusBadgeProps = {
-  status: UserStatus;
+  status: UserStatus | string;
+  className?: string;
 };
 
-const styles: Record<UserStatus, string> = {
-  Active: "border-[#d0ecd9] bg-[#e9f8ef] text-[#3ea666]",
-  Suspended: "border-[#f4d7d7] bg-[#fdeeee] text-[#db6f6f]",
-  Inactive: "border-[#f0dfb9] bg-[#fff3da] text-[#c48a2e]",
-};
+export default function StatusBadge({ status, className }: StatusBadgeProps) {
+  const normStatus = (status || "Active").toLowerCase();
 
-export default function StatusBadge({ status }: StatusBadgeProps) {
+  const isBlocked = normStatus === "blocked" || normStatus === "suspended";
+  const isDisabled = normStatus === "disabled" || normStatus === "inactive";
+  const isActive = !isBlocked && !isDisabled;
+
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px]",
-        styles[status]
+        "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-medium tracking-tight shadow-2xs transition-all",
+        isActive && "border-emerald-200 bg-emerald-50 text-emerald-700",
+        isBlocked && "border-rose-200 bg-rose-50 text-rose-700",
+        isDisabled && "border-amber-200 bg-amber-50 text-amber-700",
+        className
       )}
     >
-      <span className="h-1.5 w-1.5 rounded-full bg-current" />
-      {status}
+      <span
+        className={cn(
+          "h-1.5 w-1.5 rounded-full",
+          isActive && "bg-emerald-500 shadow-emerald-400/50 shadow-sm",
+          isBlocked && "bg-rose-500",
+          isDisabled && "bg-amber-500"
+        )}
+      />
+      <span>
+        {isActive ? "Active" : isBlocked ? "Blocked" : "Disabled"}
+      </span>
     </span>
   );
 }

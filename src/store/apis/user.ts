@@ -9,14 +9,22 @@ export interface AdminUserOverview {
 }
 
 export interface AdminUserListItem {
+  _id?: string;
+  id?: string;
   email: string;
   fullName: string;
-  avatar: string;
+  avatar?: string;
   city: string | null;
-  status: string;
+  status: "active" | "blocked" | "disabled" | string;
+  role?: string;
   faculty: string | null;
   createdAt: string;
   plan: string | null;
+}
+
+export interface AdminUserDetails extends AdminUserListItem {
+  phone?: string;
+  updatedAt?: string;
 }
 
 export interface AdminUserListResponse {
@@ -37,7 +45,14 @@ export interface UserListParams {
   limit?: number;
   status?: string;
   plan?: string;
+  role?: string;
+  city?: string;
   searchTerm?: string;
+}
+
+export interface UpdateUserStatusParams {
+  id: string;
+  status: "active" | "blocked" | "disabled";
 }
 
 function buildQuery(params?: UserListParams) {
@@ -47,8 +62,10 @@ function buildQuery(params?: UserListParams) {
 
   if (params.page) searchParams.set("page", String(params.page));
   if (params.limit) searchParams.set("limit", String(params.limit));
-  if (params.status) searchParams.set("status", params.status);
-  if (params.plan) searchParams.set("plan", params.plan);
+  if (params.status && params.status !== "All") searchParams.set("status", params.status);
+  if (params.plan && params.plan !== "All") searchParams.set("plan", params.plan);
+  if (params.role && params.role !== "All") searchParams.set("role", params.role);
+  if (params.city) searchParams.set("city", params.city);
   if (params.searchTerm) searchParams.set("searchTerm", params.searchTerm);
 
   const query = searchParams.toString();
@@ -65,7 +82,25 @@ export const userApi = baseApi.injectEndpoints({
       query: (params) => `/admin/users/list${buildQuery(params ?? undefined)}`,
       providesTags: ["Users"],
     }),
+    getUserById: builder.query<ApiEnvelope<AdminUserDetails>, string>({
+      query: (id) => `/admin/users/${id}`,
+      providesTags: (_result, _error, id) => [{ type: "Users", id }],
+    }),
+    updateUserStatus: builder.mutation<ApiEnvelope<AdminUserListItem>, UpdateUserStatusParams>({
+      query: ({ id, status }) => ({
+        url: `/admin/users/${id}/status`,
+        method: "PATCH",
+        body: { status },
+      }),
+      invalidatesTags: ["Users", "Dashboard", "AdminOverview"],
+    }),
   }),
 });
 
-export const { useGetUserOverviewQuery, useGetUserListQuery } = userApi;
+export const {
+  useGetUserOverviewQuery,
+  useGetUserListQuery,
+  useGetUserByIdQuery,
+  useUpdateUserStatusMutation,
+} = userApi;
+

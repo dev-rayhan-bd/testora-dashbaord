@@ -1,7 +1,9 @@
-import { cn } from "@/lib/utils";
-import { Ban, UserRoundCheck, UserRoundMinus, Users } from "lucide-react";
+"use client";
 
-type UserStats = {
+import { cn } from "@/lib/utils";
+import { Ban, PauseCircle, TrendingUp, UserCheck, Users } from "lucide-react";
+
+export type UserStats = {
   total: number;
   active: number;
   suspended: number;
@@ -10,59 +12,118 @@ type UserStats = {
 
 type StatsCardsProps = {
   stats: UserStats;
+  currentStatus?: string;
+  onStatusClick?: (status: string) => void;
 };
 
-const statItems = [
-  {
-    key: "total" as const,
-    label: "Total Users",
-    icon: Users,
-    iconWrap: "border-[#d7e6f4] bg-[#eff5fc] text-[#2f86d8]",
-  },
-  {
-    key: "active" as const,
-    label: "Active",
-    icon: UserRoundCheck,
-    iconWrap: "border-[#d4ecde] bg-[#eaf7f0] text-[#3ea666]",
-  },
-  {
-    key: "suspended" as const,
-    label: "Suspended",
-    icon: Ban,
-    iconWrap: "border-[#f3dddd] bg-[#feefef] text-[#db6f6f]",
-  },
-  {
-    key: "inactive" as const,
-    label: "Inactive",
-    icon: UserRoundMinus,
-    iconWrap: "border-[#f0dfb9] bg-[#fff6e3] text-[#c48a2e]",
-  },
-];
+export default function StatsCards({
+  stats,
+  currentStatus = "All",
+  onStatusClick,
+}: StatsCardsProps) {
+  const activeRate =
+    stats.total > 0 ? Math.round((stats.active / stats.total) * 100) : 100;
 
-export default function StatsCards({ stats }: StatsCardsProps) {
+  const statItems = [
+    {
+      key: "total" as const,
+      statusValue: "All",
+      label: "Total Users",
+      value: stats.total,
+      sub: "Platform students registered",
+      badge: null,
+      icon: Users,
+      color: "blue",
+    },
+    {
+      key: "active" as const,
+      statusValue: "active",
+      label: "Active Accounts",
+      value: stats.active,
+      sub: `${activeRate}% active rate`,
+      badge: `${activeRate}%`,
+      icon: UserCheck,
+      color: "emerald",
+    },
+    {
+      key: "suspended" as const,
+      statusValue: "blocked",
+      label: "Blocked Accounts",
+      value: stats.suspended,
+      sub: "Restricted platform access",
+      badge: stats.suspended > 0 ? `${stats.suspended}` : null,
+      icon: Ban,
+      color: "rose",
+    },
+    {
+      key: "inactive" as const,
+      statusValue: "disabled",
+      label: "Disabled Accounts",
+      value: stats.inactive,
+      sub: "Temporary hold / inactive",
+      badge: null,
+      icon: PauseCircle,
+      color: "amber",
+    },
+  ];
+
   return (
     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
       {statItems.map((item) => {
         const Icon = item.icon;
-        const value = stats[item.key];
+        const isSelected =
+          currentStatus.toLowerCase() === item.statusValue.toLowerCase();
 
         return (
-          <div key={item.key} className="rounded-lg border border-[#dce7f2] bg-white p-3.5">
-            <div className="flex items-center gap-3">
-              <div
-                className={cn(
-                  "flex h-8 w-8 items-center justify-center rounded-md border",
-                  item.iconWrap
-                )}
-              >
-                <Icon className="h-4 w-4" />
+          <button
+            key={item.key}
+            type="button"
+            onClick={() => onStatusClick?.(item.statusValue)}
+            className={cn(
+              "group relative overflow-hidden rounded-xl border bg-white p-4 text-left shadow-2xs transition-all hover:shadow-xs cursor-pointer",
+              isSelected
+                ? "border-blue-400 ring-2 ring-blue-400/20"
+                : "border-slate-200/90 hover:border-slate-300"
+            )}
+          >
+            <div className="flex items-start justify-between">
+              <div className="flex items-center gap-3">
+                <div
+                  className={cn(
+                    "flex h-10 w-10 items-center justify-center rounded-xl border shadow-2xs transition-transform group-hover:scale-105",
+                    item.color === "blue" && "border-blue-200 bg-blue-50 text-[#2f86d8]",
+                    item.color === "emerald" && "border-emerald-200 bg-emerald-50 text-emerald-600",
+                    item.color === "rose" && "border-rose-200 bg-rose-50 text-rose-600",
+                    item.color === "amber" && "border-amber-200 bg-amber-50 text-amber-600"
+                  )}
+                >
+                  <Icon className="h-5 w-5" />
+                </div>
+                <div>
+                  <p className="text-xs font-medium text-slate-500">{item.label}</p>
+                  <p className="text-2xl font-bold tracking-tight text-slate-800">
+                    {item.value.toLocaleString()}
+                  </p>
+                </div>
               </div>
-              <div>
-                <p className="text-[22px] leading-6 font-semibold text-[#3f5f7a]">{value}</p>
-                <p className="text-[11px] text-[#90a3b6]">{item.label}</p>
-              </div>
+
+              {item.badge && (
+                <span
+                  className={cn(
+                    "inline-flex items-center gap-0.5 rounded-full border px-2 py-0.5 text-[10px] font-bold",
+                    item.color === "emerald" &&
+                      "border-emerald-200 bg-emerald-50 text-emerald-700",
+                    item.color === "rose" && "border-rose-200 bg-rose-50 text-rose-700"
+                  )}
+                >
+                  {item.color === "emerald" && <TrendingUp className="h-2.5 w-2.5" />}
+                  {item.badge}
+                </span>
+              )}
             </div>
-          </div>
+
+            <p className="mt-2 text-[11px] text-slate-400">{item.sub}</p>
+          </button>
         );
       })}
     </div>

@@ -1,3 +1,5 @@
+"use client";
+
 import Pagination from "@/components/users/Pagination";
 import UserRow, { type UserManagementRow } from "@/components/users/UserRow";
 
@@ -9,9 +11,7 @@ type UsersTableProps = {
   onPageChange: (page: number) => void;
   onRowsPerPageChange: (rows: number) => void;
   onViewUser: (user: UserManagementRow) => void;
-  onSuspendUser: (user: UserManagementRow) => void;
-  onDeactivateUser: (user: UserManagementRow) => void;
-  onArchiveUser: (user: UserManagementRow) => void;
+  onStatusAction: (actionType: "block" | "unblock" | "disable", user: UserManagementRow) => void;
 };
 
 export default function UsersTable({
@@ -22,35 +22,31 @@ export default function UsersTable({
   onPageChange,
   onRowsPerPageChange,
   onViewUser,
-  onSuspendUser,
-  onDeactivateUser,
-  onArchiveUser,
+  onStatusAction,
 }: UsersTableProps) {
   return (
-    <section className="overflow-hidden rounded-lg border border-[#dce7f2] bg-white">
+    <section className="overflow-hidden rounded-xl border border-slate-200/90 bg-white shadow-2xs">
       <div className="overflow-x-auto">
-        <table className="w-full min-w-240 text-left">
-          <thead className="bg-[#f3f7fb] text-[11px] tracking-wide text-[#6f859b] uppercase">
+        <table className="w-full min-w-240 text-left border-collapse">
+          <thead className="border-b border-slate-200 bg-[#f8fbff] text-[11px] font-bold tracking-wider text-slate-500 uppercase">
             <tr>
-              <th className="px-4 py-2.5 font-medium sm:px-5">User</th>
-              <th className="px-4 py-2.5 font-medium sm:px-5">Preferred Category</th>
-              <th className="px-4 py-2.5 font-medium sm:px-5">Active Plan</th>
-              <th className="px-4 py-2.5 font-medium sm:px-5">Last Activity</th>
-              <th className="px-4 py-2.5 font-medium sm:px-5">Joined Date</th>
-              <th className="px-4 py-2.5 font-medium sm:px-5">Status</th>
-              <th className="px-4 py-2.5 text-right font-medium sm:px-5">Actions</th>
+              <th className="px-5 py-3">Student</th>
+              <th className="px-5 py-3">Preferred Category</th>
+              <th className="px-5 py-3">Active Plan</th>
+              <th className="px-5 py-3">Last Activity</th>
+              <th className="px-5 py-3">Joined Date</th>
+              <th className="px-5 py-3">Status</th>
+              <th className="px-5 py-3 text-right">Actions</th>
             </tr>
           </thead>
 
-          <tbody>
+          <tbody className="divide-y divide-slate-100">
             {users.map((user) => (
               <UserRow
-                key={user.id}
+                key={user.id || user.email}
                 user={user}
                 onView={onViewUser}
-                onSuspend={onSuspendUser}
-                onDeactivate={onDeactivateUser}
-                onArchive={onArchiveUser}
+                onStatusAction={onStatusAction}
               />
             ))}
           </tbody>

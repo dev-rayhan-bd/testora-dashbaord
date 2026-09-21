@@ -15,7 +15,7 @@ export interface PaginatedResponse<T = unknown> {
   totalPages: number;
 }
 
-export type UserStatus = "Active" | "Suspended" | "Inactive";
+export type UserStatus = "Active" | "Suspended" | "Inactive" | "Blocked" | "Disabled";
 export type PlanType = "Yearly" | "Monthly" | "One-time";
 export type SubscriptionStatus = "Active" | "Expired" | "Cancelled";
 export type PaymentMethod = "Stripe" | "PayPal" | "Card" | "Manual";
