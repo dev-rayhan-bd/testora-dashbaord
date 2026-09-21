@@ -21,10 +21,8 @@ export type UserManagementRow = {
   avatar?: string;
   role?: string;
   city?: string;
-  preferredCategory: string;
   type: string;
   activePlan: string;
-  lastActivity: string;
   joinedDate: string;
   status: UserStatus;
   rawStatus: "active" | "blocked" | "disabled";
@@ -33,34 +31,36 @@ export type UserManagementRow = {
 
 type UserRowProps = {
   user: UserManagementRow;
+  isLastRow?: boolean;
   onView: (user: UserManagementRow) => void;
   onStatusAction: (actionType: "block" | "unblock" | "disable", user: UserManagementRow) => void;
 };
 
 function planBadgeClass(plan: string) {
   const norm = (plan || "Free").toLowerCase();
-  if (norm.includes("pro") || norm.includes("premium")) {
-    return "border-violet-200 bg-violet-50 text-violet-700";
+  if (norm.includes("semi")) {
+    return "border-indigo-200 bg-indigo-50 text-indigo-700 font-semibold";
   }
   if (norm.includes("matura")) {
-    return "border-blue-200 bg-blue-50 text-[#2f86d8]";
+    return "border-blue-200 bg-blue-50 text-[#2f86d8] font-semibold";
   }
-  return "border-slate-200 bg-slate-50 text-slate-600";
+  if (norm.includes("provime")) {
+    return "border-amber-200 bg-amber-50 text-amber-700 font-semibold";
+  }
+  return "border-slate-200 bg-slate-50 text-slate-600 font-medium";
 }
 
-function categoryBadgeClass(category: string) {
-  const norm = (category || "General").toLowerCase();
-  if (norm.includes("matura")) {
-    return "border-blue-100 bg-blue-50/70 text-blue-700";
+function roleBadgeClass(role?: string) {
+  const norm = (role || "student").toLowerCase();
+  if (norm === "admin" || norm === "super_admin" || norm === "super-admin") {
+    return "border-purple-200 bg-purple-50 text-purple-700 font-semibold";
   }
-  if (norm.includes("semi")) {
-    return "border-indigo-100 bg-indigo-50/70 text-indigo-700";
-  }
-  return "border-emerald-100 bg-emerald-50/70 text-emerald-700";
+  return "border-slate-200 bg-slate-50 text-slate-700 font-medium";
 }
 
 export default function UserRow({
   user,
+  isLastRow = false,
   onView,
   onStatusAction,
 }: UserRowProps) {
@@ -84,7 +84,7 @@ export default function UserRow({
 
   return (
     <tr className="border-b border-slate-100 text-xs transition-colors hover:bg-[#f9fbfe]">
-      {/* User info */}
+      {/* Student info */}
       <td className="px-5 py-3.5">
         <div className="flex items-center gap-3">
           {user.avatar ? (
@@ -102,16 +102,9 @@ export default function UserRow({
             </div>
           )}
           <div className="min-w-0">
-            <div className="flex items-center gap-1.5">
-              <p className="font-semibold text-slate-800 truncate" title={user.name}>
-                {user.name}
-              </p>
-              {user.role && user.role !== "user" && (
-                <span className="rounded-sm bg-slate-100 px-1 py-0.2 text-[9px] font-bold uppercase text-slate-500">
-                  {user.role}
-                </span>
-              )}
-            </div>
+            <p className="font-semibold text-slate-800 truncate" title={user.name}>
+              {user.name}
+            </p>
             <p className="text-[11px] text-slate-400 truncate" title={user.email}>
               {user.email}
             </p>
@@ -119,15 +112,15 @@ export default function UserRow({
         </div>
       </td>
 
-      {/* Preferred Category */}
+      {/* Role */}
       <td className="px-5 py-3.5">
         <span
           className={cn(
-            "inline-flex rounded-md border px-2 py-0.5 text-[11px] font-medium",
-            categoryBadgeClass(user.preferredCategory)
+            "inline-flex rounded-md border px-2.5 py-0.5 text-[11px] capitalize",
+            roleBadgeClass(user.role)
           )}
         >
-          {user.preferredCategory}
+          {user.role || "Student"}
         </span>
       </td>
 
@@ -135,7 +128,7 @@ export default function UserRow({
       <td className="px-5 py-3.5">
         <span
           className={cn(
-            "inline-flex rounded-md border px-2 py-0.5 text-[11px] font-semibold",
+            "inline-flex rounded-md border px-2.5 py-0.5 text-[11px]",
             planBadgeClass(user.activePlan)
           )}
         >
@@ -143,11 +136,8 @@ export default function UserRow({
         </span>
       </td>
 
-      {/* Last Activity */}
-      <td className="px-5 py-3.5 text-slate-500 font-medium">{user.lastActivity}</td>
-
       {/* Joined Date */}
-      <td className="px-5 py-3.5 text-slate-500">{user.joinedDate}</td>
+      <td className="px-5 py-3.5 text-slate-500 font-medium">{user.joinedDate}</td>
 
       {/* Status */}
       <td className="px-5 py-3.5">
@@ -167,7 +157,12 @@ export default function UserRow({
           </button>
 
           {open && (
-            <div className="absolute top-9 right-0 z-30 w-52 overflow-hidden rounded-xl border border-slate-200 bg-white py-1.5 shadow-xl animate-in fade-in zoom-in-95 duration-100">
+            <div
+              className={cn(
+                "absolute right-0 z-40 w-52 overflow-hidden rounded-xl border border-slate-200 bg-white py-1.5 shadow-xl animate-in fade-in zoom-in-95 duration-100",
+                isLastRow ? "bottom-9 origin-bottom-right" : "top-9 origin-top-right"
+              )}
+            >
               <button
                 type="button"
                 onClick={() => {

@@ -3,6 +3,11 @@
 import { RefreshCw, RotateCcw, Search, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+export type PlanFilterOption = {
+  label: string;
+  value: string;
+};
+
 type UserFiltersProps = {
   search: string;
   onSearchChange: (value: string) => void;
@@ -10,7 +15,7 @@ type UserFiltersProps = {
   onPlanChange: (value: string) => void;
   status: string;
   onStatusChange: (value: string) => void;
-  plans: string[];
+  plans: (string | PlanFilterOption)[];
   statuses: string[];
   isRefreshing?: boolean;
   onRefresh?: () => void;
@@ -67,11 +72,15 @@ export default function UserFilters({
               onChange={(e) => onPlanChange(e.target.value)}
               className="bg-transparent text-xs font-semibold text-slate-700 outline-none cursor-pointer"
             >
-              {plans.map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
+              {plans.map((p) => {
+                const val = typeof p === "string" ? p : p.value;
+                const lbl = typeof p === "string" ? p : p.label;
+                return (
+                  <option key={val} value={val}>
+                    {lbl}
+                  </option>
+                );
+              })}
             </select>
           </label>
 

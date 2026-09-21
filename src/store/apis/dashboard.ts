@@ -69,8 +69,9 @@ export interface IAdminOverviewRecentUser {
   id: string;
   fullName: string;
   avatar: string | null;
-  city: string;
+  city?: string;
   email: string;
+  role?: string;
   status: string;
   plan: string;
   joinedDate: string;

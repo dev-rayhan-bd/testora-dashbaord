@@ -207,13 +207,14 @@ export default function UserManagementPage() {
     }
   };
 
-  // Dynamic Plans options from records
-  const planOptions = useMemo(() => {
-    const availablePlans = Array.from(
-      new Set((usersResponse?.data ?? []).map((user) => user.plan).filter(Boolean))
-    ) as string[];
-    return ["All", ...availablePlans];
-  }, [usersResponse]);
+  // Standardized Plan options requested: All Plans, Free (default), Matura, Semi Matura, Provime
+  const planOptions = useMemo(() => [
+    { label: "All Plans", value: "All" },
+    { label: "Free (Default)", value: "Free" },
+    { label: "Matura", value: "Matura" },
+    { label: "Semi Matura", value: "Semi Matura" },
+    { label: "Provime", value: "Provime" },
+  ], []);
 
   const users = useMemo(() => (usersResponse?.data ?? []).map(mapUser), [usersResponse]);
 
@@ -301,8 +302,6 @@ export default function UserManagementPage() {
         }}
         plans={planOptions}
         statuses={statusOptions}
-        isRefreshing={isRefreshing}
-        onRefresh={handleRefresh}
         onReset={handleResetFilters}
       />
 

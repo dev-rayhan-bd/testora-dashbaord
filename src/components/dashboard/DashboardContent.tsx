@@ -2,8 +2,6 @@
 
 import DashboardAreaChart from "@/components/charts/DashboardAreaChart";
 import DashboardDonutChart from "@/components/charts/DashboardDonutChart";
-import YearSelect from "@/components/dashboard/YearSelect";
-import { dashboardYears, type DashboardYear } from "@/lib/dashboard-sample-data";
 import {
   formatCount,
   formatDate,
@@ -105,8 +103,8 @@ function RecentUsersTable({ users }: { users: IAdminOverviewRecentUser[] }) {
           <thead className="bg-[#f4f8fc] text-[11px] font-semibold text-[#5c758e] uppercase tracking-wider">
             <tr>
               <th className="px-5 py-3">#</th>
-              <th className="px-5 py-3">User</th>
-              <th className="px-5 py-3">City</th>
+              <th className="px-5 py-3">Student</th>
+              <th className="px-5 py-3">Role</th>
               <th className="px-5 py-3">Plan</th>
               <th className="px-5 py-3">Joined Date</th>
               <th className="px-5 py-3">Status</th>
@@ -148,7 +146,11 @@ function RecentUsersTable({ users }: { users: IAdminOverviewRecentUser[] }) {
                       </div>
                     </div>
                   </td>
-                  <td className="px-5 py-3.5 text-[#5e778e]">{user.city || "N/A"}</td>
+                  <td className="px-5 py-3.5">
+                    <span className="rounded-md border border-slate-200 bg-slate-50 px-2 py-0.5 text-[11px] font-semibold text-slate-700 capitalize">
+                      {user.role || "student"}
+                    </span>
+                  </td>
                   <td className="px-5 py-3.5">
                     <span
                       className={cn(
@@ -183,9 +185,6 @@ function RecentUsersTable({ users }: { users: IAdminOverviewRecentUser[] }) {
 }
 
 export default function DashboardContent() {
-  const [selectedYear, setSelectedYear] = useState<DashboardYear>(2026);
-  const years = dashboardYears;
-
   const {
     data: overviewResponse,
     isLoading,
@@ -193,7 +192,7 @@ export default function DashboardContent() {
     isError,
     error,
     refetch,
-  } = useGetAdminOverviewQuery({ year: selectedYear });
+  } = useGetAdminOverviewQuery();
 
   const overview = overviewResponse?.data;
   const previousError = useRef<string | null>(null);
@@ -453,17 +452,15 @@ export default function DashboardContent() {
             <div className="mb-3 flex items-center justify-between gap-2">
               <div>
                 <h3 className="text-sm font-semibold text-[#1e293b]">Monthly Student Growth</h3>
-                <p className="text-xs text-[#64748b]">Registration trends across {selectedYear}</p>
+                <p className="text-xs text-[#64748b]">Registration trends across 2026</p>
               </div>
               <div className="flex items-center gap-2">
                 <span className="rounded-md bg-[#eff6ff] px-2 py-1 text-[11px] font-semibold text-[#2f86d8]">
                   {stats[0].value} Registered
                 </span>
-                <YearSelect
-                  years={[...years]}
-                  value={selectedYear}
-                  onChange={(value) => setSelectedYear(value as DashboardYear)}
-                />
+                <span className="rounded-md border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-semibold text-slate-700">
+                  2026
+                </span>
               </div>
             </div>
             <div className="mt-2">
@@ -754,18 +751,15 @@ export default function DashboardContent() {
             </div>
           </div>
 
-          {/* Right: Live Sales Transactions & Order Activity */}
+          {/* Right: Live Sales Transactions or Catalog Metrics */}
           <div className="rounded-xl border border-slate-200/80 bg-[#fbfdff] p-4">
             <h4 className="mb-3 text-xs font-bold uppercase tracking-wider text-[#475569] flex items-center gap-2">
-              <ShoppingBag className="h-3.5 w-3.5 text-blue-600" /> Sales Notes & Transaction Status
+              <ShoppingBag className="h-3.5 w-3.5 text-blue-600" />
+              {salesNotes.length > 0 ? "Sales Notes & Transaction Status" : "Marketplace Performance Summary"}
             </h4>
-            <div className="space-y-2.5">
-              {salesNotes.length === 0 ? (
-                <div className="flex h-36 items-center justify-center rounded-lg border border-dashed border-slate-200 text-xs text-slate-400">
-                  No sales notes recorded
-                </div>
-              ) : (
-                salesNotes.map((item, index) => (
+            {salesNotes.length > 0 ? (
+              <div className="space-y-2.5">
+                {salesNotes.map((item, index) => (
                   <div
                     key={`${item.name}-${index}`}
                     className="flex items-center justify-between rounded-lg border border-slate-200/60 bg-white p-3 shadow-2xs hover:border-slate-300 transition-colors"
@@ -791,9 +785,34 @@ export default function DashboardContent() {
                       {item.change}
                     </span>
                   </div>
-                ))
-              )}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-2.5">
+                <div className="rounded-lg border border-slate-200/70 bg-white p-3 shadow-2xs">
+                  <p className="text-[11px] font-medium text-slate-500">Total Units Sold</p>
+                  <p className="mt-1 text-lg font-bold text-slate-800">{totalUnitsSold}</p>
+                  <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-emerald-600">
+                    <TrendingUp className="h-3 w-3" /> Live orders
+                  </span>
+                </div>
+                <div className="rounded-lg border border-slate-200/70 bg-white p-3 shadow-2xs">
+                  <p className="text-[11px] font-medium text-slate-500">Gross Revenue</p>
+                  <p className="mt-1 text-lg font-bold text-slate-800">${totalRevenue.toFixed(2)}</p>
+                  <span className="text-[10px] font-medium text-blue-600">Marketplace total</span>
+                </div>
+                <div className="rounded-lg border border-slate-200/70 bg-white p-3 shadow-2xs">
+                  <p className="text-[11px] font-medium text-slate-500">Catalog Listings</p>
+                  <p className="mt-1 text-lg font-bold text-slate-800">{products.length}</p>
+                  <span className="text-[10px] font-medium text-slate-400">Available in store</span>
+                </div>
+                <div className="rounded-lg border border-slate-200/70 bg-white p-3 shadow-2xs">
+                  <p className="text-[11px] font-medium text-slate-500">Top Seller Share</p>
+                  <p className="mt-1 text-lg font-bold text-slate-800">{products[0]?.percentage || 0}%</p>
+                  <span className="text-[10px] font-semibold text-emerald-600">Leader item</span>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </Surface>

@@ -71,7 +71,8 @@ export default function StatsCards({
     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
       {statItems.map((item) => {
         const Icon = item.icon;
-        const isSelected =
+        const isFilterActive =
+          currentStatus !== "All" &&
           currentStatus.toLowerCase() === item.statusValue.toLowerCase();
 
         return (
@@ -80,17 +81,17 @@ export default function StatsCards({
             type="button"
             onClick={() => onStatusClick?.(item.statusValue)}
             className={cn(
-              "group relative overflow-hidden rounded-xl border bg-white p-4 text-left shadow-2xs transition-all hover:shadow-xs cursor-pointer",
-              isSelected
-                ? "border-blue-400 ring-2 ring-blue-400/20"
-                : "border-slate-200/90 hover:border-slate-300"
+              "group relative overflow-hidden rounded-xl border bg-white p-4 text-left shadow-2xs transition-all hover:border-slate-300 hover:shadow-xs cursor-pointer",
+              isFilterActive
+                ? "border-blue-500 ring-2 ring-blue-500/20 bg-blue-50/10"
+                : "border-slate-200/90"
             )}
           >
             <div className="flex items-start justify-between">
               <div className="flex items-center gap-3">
                 <div
                   className={cn(
-                    "flex h-10 w-10 items-center justify-center rounded-xl border shadow-2xs transition-transform group-hover:scale-105",
+                    "flex h-11 w-11 items-center justify-center rounded-xl border shadow-2xs transition-transform group-hover:scale-105",
                     item.color === "blue" && "border-blue-200 bg-blue-50 text-[#2f86d8]",
                     item.color === "emerald" && "border-emerald-200 bg-emerald-50 text-emerald-600",
                     item.color === "rose" && "border-rose-200 bg-rose-50 text-rose-600",

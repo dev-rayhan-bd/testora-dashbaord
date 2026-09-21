@@ -23,6 +23,15 @@ export function formatRelativeTime(value?: string) {
   return `${diffDays} days ago`;
 }
 
+export function formatPlanName(plan?: string | null) {
+  if (!plan || plan.toLowerCase() === "free" || plan.toLowerCase() === "none") return "Free";
+  const norm = plan.toLowerCase();
+  if (norm === "semi_matura" || norm === "semi matura") return "Semi Matura";
+  if (norm === "matura") return "Matura";
+  if (norm === "provime") return "Provime";
+  return plan;
+}
+
 export function mapUser(item: AdminUserListItem): UserManagementRow {
   const initials = (item.fullName || "User")
     .split(" ")
@@ -46,18 +55,18 @@ export function mapUser(item: AdminUserListItem): UserManagementRow {
         ? "Blocked"
         : "Disabled";
 
+  const role = item.role || "student";
+
   return {
     id: item._id || item.id || item.email,
     initials: initials || "U",
     name: item.fullName || "Unnamed User",
     email: item.email || "N/A",
     avatar: item.avatar,
-    role: item.role || "student",
+    role: role.charAt(0).toUpperCase() + role.slice(1),
     city: item.city || undefined,
-    preferredCategory: item.faculty ?? "General",
-    type: item.role ? (item.role.charAt(0).toUpperCase() + item.role.slice(1)) : "Student",
-    activePlan: item.plan ?? "Free",
-    lastActivity: formatRelativeTime(item.createdAt),
+    type: role.charAt(0).toUpperCase() + role.slice(1),
+    activePlan: formatPlanName(item.plan),
     joinedDate: formatDate(item.createdAt),
     status: statusDisplay,
     rawStatus,

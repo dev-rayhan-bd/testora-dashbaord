@@ -6,13 +6,12 @@ import {
   Calendar,
   Check,
   CheckCircle2,
-  Clock,
   Copy,
-  GraduationCap,
-  MapPin,
+  Mail,
   PauseCircle,
   Shield,
   Sparkles,
+  User,
   X,
 } from "lucide-react";
 import Image from "next/image";
@@ -47,7 +46,7 @@ export default function UserDetailsModal({ open, user, onClose, onAction }: Prop
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/45 p-4 backdrop-blur-xs animate-in fade-in duration-150">
-      <div className="w-full max-w-xl overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
+      <div className="w-full max-w-lg overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
         {/* Header */}
         <div className="flex items-start justify-between border-b border-slate-100 bg-[#fbfdff] px-6 py-5">
           <div className="flex items-center gap-3.5">
@@ -114,9 +113,9 @@ export default function UserDetailsModal({ open, user, onClose, onAction }: Prop
             </button>
           </div>
 
-          {/* Details Grid */}
+          {/* Details Grid (Only Real Fields) */}
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            {/* Status */}
+            {/* Account Status */}
             <div className="rounded-xl border border-slate-100 bg-slate-50/50 p-3">
               <span className="flex items-center gap-1 text-[11px] font-medium text-slate-500 mb-1">
                 <Shield className="h-3.5 w-3.5 text-slate-400" /> Account Status
@@ -129,27 +128,29 @@ export default function UserDetailsModal({ open, user, onClose, onAction }: Prop
               <span className="flex items-center gap-1 text-[11px] font-medium text-slate-500 mb-1">
                 <Sparkles className="h-3.5 w-3.5 text-[#2f86d8]" /> Active Plan
               </span>
-              <span className="inline-flex items-center rounded-md border border-blue-200 bg-blue-50 px-2 py-0.5 text-xs font-semibold text-[#2f86d8]">
+              <span
+                className={`inline-flex items-center rounded-md border px-2.5 py-0.5 text-xs font-semibold ${
+                  user.activePlan.toLowerCase().includes("semi")
+                    ? "border-indigo-200 bg-indigo-50 text-indigo-700"
+                    : user.activePlan.toLowerCase().includes("matura")
+                      ? "border-blue-200 bg-blue-50 text-[#2f86d8]"
+                      : user.activePlan.toLowerCase().includes("provime")
+                        ? "border-amber-200 bg-amber-50 text-amber-700"
+                        : "border-slate-200 bg-slate-50 text-slate-700"
+                }`}
+              >
                 {user.activePlan || "Free"}
               </span>
             </div>
 
-            {/* Preferred Category / Faculty */}
+            {/* Role */}
             <div className="rounded-xl border border-slate-100 bg-slate-50/50 p-3">
               <span className="flex items-center gap-1 text-[11px] font-medium text-slate-500 mb-1">
-                <GraduationCap className="h-3.5 w-3.5 text-slate-400" /> Preferred Category
+                <User className="h-3.5 w-3.5 text-slate-400" /> Platform Role
               </span>
-              <p className="text-xs font-semibold text-slate-700">
-                {user.preferredCategory || "General"}
+              <p className="text-xs font-semibold text-slate-700 capitalize">
+                {user.role || "Student"}
               </p>
-            </div>
-
-            {/* City */}
-            <div className="rounded-xl border border-slate-100 bg-slate-50/50 p-3">
-              <span className="flex items-center gap-1 text-[11px] font-medium text-slate-500 mb-1">
-                <MapPin className="h-3.5 w-3.5 text-slate-400" /> City / Location
-              </span>
-              <p className="text-xs font-semibold text-slate-700">{user.city || "Not Specified"}</p>
             </div>
 
             {/* Joined Date */}
@@ -160,12 +161,12 @@ export default function UserDetailsModal({ open, user, onClose, onAction }: Prop
               <p className="text-xs font-semibold text-slate-700">{user.joinedDate || "N/A"}</p>
             </div>
 
-            {/* Last Activity */}
-            <div className="rounded-xl border border-slate-100 bg-slate-50/50 p-3">
+            {/* Email Address */}
+            <div className="col-span-full rounded-xl border border-slate-100 bg-slate-50/50 p-3">
               <span className="flex items-center gap-1 text-[11px] font-medium text-slate-500 mb-1">
-                <Clock className="h-3.5 w-3.5 text-slate-400" /> Last Activity
+                <Mail className="h-3.5 w-3.5 text-slate-400" /> Registered Email
               </span>
-              <p className="text-xs font-semibold text-slate-700">{user.lastActivity || "N/A"}</p>
+              <p className="text-xs font-semibold text-slate-700 select-all">{user.email}</p>
             </div>
           </div>
         </div>
