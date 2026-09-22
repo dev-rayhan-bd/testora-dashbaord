@@ -44,19 +44,21 @@ export interface User {
 
 export interface PremiumSubscription {
   id: string;
-  userId: string;
-  initials: string;
+  userId?: string;
+  initials?: string;
   userName: string;
   userEmail: string;
+  userAvatar?: string;
   product: string;
-  productColor: string;
-  planType: PlanType;
+  productColor?: string;
+  plan?: string;
+  planType: PlanType | string;
   startDate: string;
   expiryDate: string;
-  status: SubscriptionStatus;
-  payment: PaymentMethod;
+  status: SubscriptionStatus | string;
+  payment: PaymentMethod | string;
   orderId: string;
-  amount: string;
+  amount?: string;
   daysRemaining?: number;
   expiringWarning?: boolean;
 }

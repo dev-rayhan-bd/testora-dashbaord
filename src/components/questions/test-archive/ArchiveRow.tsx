@@ -1,82 +1,206 @@
-import type { TestArchiveRow } from "@/lib/test-archive-data";
+"use client";
+
 import { cn } from "@/lib/utils";
-import { Copy, Eye, Pencil, Trash2 } from "lucide-react";
+import type { TestArchiveItem } from "@/store/apis";
+import { Check, Copy, Eye, Pencil, Trash2 } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
 
-function statusClass(status: TestArchiveRow["status"]) {
-  if (status === "Published") return "border-[#d0ecd9] bg-[#e9f8ef] text-[#3ea666]";
-  if (status === "Draft") return "border-[#f0dfb9] bg-[#fff3da] text-[#c48a2e]";
-  return "border-[#dee8f2] bg-[#f2f6fb] text-[#6d839a]";
+interface Props {
+  row: TestArchiveItem;
+  serialNumber: number;
+  onView: (row: TestArchiveItem) => void;
+  onEdit: (row: TestArchiveItem) => void;
+  onDuplicate: (row: TestArchiveItem) => void;
+  onDelete: (row: TestArchiveItem) => void;
 }
 
-function accessClass(access: TestArchiveRow["access"]) {
-  return access === "Premium"
-    ? "border-[#e4ddf4] bg-[#f1edfb] text-[#8468c4]"
-    : "border-[#d6e5f4] bg-[#eaf2fb] text-[#4d93d9]";
-}
+export default function ArchiveRow({
+  row,
+  serialNumber,
+  onView,
+  onEdit,
+  onDuplicate,
+  onDelete,
+}: Props) {
+  const [copied, setCopied] = useState(false);
 
-function typeClass(type: TestArchiveRow["type"]) {
-  return type === "Additional"
-    ? "border-[#e4ddf4] bg-[#f1edfb] text-[#8468c4]"
-    : "border-[#d6e5f4] bg-[#eaf2fb] text-[#4d93d9]";
-}
+  const handleCopyCode = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!row.testCode) return;
+    try {
+      await navigator.clipboard.writeText(row.testCode);
+      setCopied(true);
+      toast.success(`Copied test code: ${row.testCode}`);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      toast.error("Failed to copy test code");
+    }
+  };
 
-export default function ArchiveRow({ row, serialNumber }: { row: TestArchiveRow; serialNumber: number }) {
+  const examTypeLabel =
+    row.examType === "matura"
+      ? "Matura"
+      : row.examType === "semi_matura"
+      ? "Semimatura"
+      : row.examType === "provime"
+      ? "Entrance Exam"
+      : row.examType;
+
+  const subjectFacultyLabel =
+    row.subjectName ||
+    (typeof row.subject === "object" ? row.subject?.name : null) ||
+    row.facultyName ||
+    (typeof row.faculty === "object" ? row.faculty?.name : null) ||
+    "—";
+
+  const questionCount =
+    typeof row.totalQuestions === "number"
+      ? row.totalQuestions
+      : Array.isArray(row.questionIds)
+      ? row.questionIds.length
+      : 0;
+
   return (
-    <tr className="border-b border-[#ecf2f8] text-xs text-[#5e768e] last:border-b-0 hover:bg-[#f8fbff]">
-      <td className="px-4 py-2.5 font-semibold text-[#2f86d8]">{serialNumber}</td>
-      <td className="px-4 py-2.5 font-medium text-[#4f6d87]">{row.title}</td>
-      <td className="px-4 py-2.5">{row.category}</td>
-      <td className="px-4 py-2.5">{row.year}</td>
-      <td className="px-4 py-2.5">{row.subjectCategory}</td>
-      <td className="px-4 py-2.5">
-        <span className={cn("rounded-sm border px-2 py-0.5 text-[11px]", typeClass(row.type))}>
-          {row.type}
-        </span>
+    <tr className="group border-b border-[#e9eff6] text-xs text-[#526a82] transition-colors hover:bg-[#f6faff]">
+      {/* 1. Index */}
+      <td className="px-4 py-3 font-semibold text-[#1e6fbe]">{serialNumber}</td>
+
+      {/* 2. Title & Test Code */}
+      <td className="max-w-[240px] px-4 py-3">
+        <div className="font-semibold text-[#29425a] line-clamp-1">{row.title}</div>
+        <div className="mt-1 flex items-center gap-1.5">
+          <span className="inline-flex items-center gap-1 rounded bg-[#eef4fb] px-1.5 py-0.5 font-mono text-[10px] font-medium text-[#2d6fa8]">
+            {row.testCode || "NO-CODE"}
+            <button
+              type="button"
+              onClick={handleCopyCode}
+              aria-label="Copy test code"
+              className="text-[#6d8fae] hover:text-[#1e6fbe]"
+            >
+              {copied ? <Check className="h-3 w-3 text-emerald-600" /> : <Copy className="h-3 w-3" />}
+            </button>
+          </span>
+        </div>
       </td>
-      <td className="px-4 py-2.5">
-        <span className={cn("rounded-sm border px-2 py-0.5 text-[11px]", accessClass(row.access))}>
-          {row.access}
-        </span>
-      </td>
-      <td className="px-4 py-2.5">{row.questions}</td>
-      <td className="px-4 py-2.5">
+
+      {/* 3. Exam Type */}
+      <td className="px-4 py-3">
         <span
           className={cn(
-            "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px]",
-            statusClass(row.status)
+            "inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-medium border",
+            row.examType === "provime"
+              ? "border-purple-200 bg-purple-50 text-purple-700"
+              : row.examType === "matura"
+              ? "border-blue-200 bg-blue-50 text-blue-700"
+              : "border-teal-200 bg-teal-50 text-teal-700"
           )}
         >
-          <span className="h-1.5 w-1.5 rounded-full bg-current" />
-          {row.status}
+          {examTypeLabel}
         </span>
       </td>
-      <td className="px-4 py-2.5">
-        <div className="flex items-center gap-0.5 text-[#7f95aa]">
+
+      {/* 4. Year */}
+      <td className="px-4 py-3 font-mono font-medium text-[#4f6b84]">{row.year}</td>
+
+      {/* 5. Subject / Faculty */}
+      <td className="max-w-[150px] truncate px-4 py-3 text-[#405c75]">
+        {subjectFacultyLabel}
+      </td>
+
+      {/* 6. Test Type */}
+      <td className="px-4 py-3">
+        <span
+          className={cn(
+            "rounded-md border px-2 py-0.5 text-[11px] font-medium capitalize",
+            row.testType === "additional"
+              ? "border-indigo-200 bg-indigo-50 text-indigo-700"
+              : "border-sky-200 bg-sky-50 text-sky-700"
+          )}
+        >
+          {row.testType || "official"}
+        </span>
+      </td>
+
+      {/* 7. Access */}
+      <td className="px-4 py-3">
+        <span
+          className={cn(
+            "inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[11px] font-medium capitalize",
+            row.access === "premium"
+              ? "border-amber-200 bg-amber-50 text-amber-700"
+              : "border-slate-200 bg-slate-50 text-slate-700"
+          )}
+        >
+          {row.access === "premium" ? "★ Premium" : "Free"}
+        </span>
+      </td>
+
+      {/* 8. Questions Count */}
+      <td className="px-4 py-3">
+        <span className="inline-flex items-center justify-center rounded-full bg-[#ebf3fc] px-2 py-0.5 font-mono text-[11px] font-semibold text-[#1e6fbe]">
+          {questionCount}
+        </span>
+      </td>
+
+      {/* 9. Status */}
+      <td className="px-4 py-3">
+        <span
+          className={cn(
+            "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-medium capitalize",
+            row.status === "published"
+              ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+              : row.status === "draft"
+              ? "border-amber-200 bg-amber-50 text-amber-700"
+              : "border-slate-200 bg-slate-100 text-slate-600"
+          )}
+        >
+          <span
+            className={cn(
+              "h-1.5 w-1.5 rounded-full",
+              row.status === "published"
+                ? "bg-emerald-500"
+                : row.status === "draft"
+                ? "bg-amber-500"
+                : "bg-slate-400"
+            )}
+          />
+          {row.status || "published"}
+        </span>
+      </td>
+
+      {/* 10. Actions */}
+      <td className="px-4 py-3">
+        <div className="flex items-center gap-1">
           <button
             type="button"
-            aria-label="View test"
-            className="rounded p-1 hover:bg-[#f3f7fb] hover:text-[#2f86d8]"
+            title="View Questions"
+            onClick={() => onView(row)}
+            className="rounded p-1 text-[#6a849d] hover:bg-[#ebf3fb] hover:text-[#1e6fbe] transition-colors"
           >
             <Eye className="h-3.5 w-3.5" />
           </button>
           <button
             type="button"
-            aria-label="Edit test"
-            className="rounded p-1 hover:bg-[#f3f7fb] hover:text-[#2f86d8]"
+            title="Edit Test"
+            onClick={() => onEdit(row)}
+            className="rounded p-1 text-[#6a849d] hover:bg-[#ebf3fb] hover:text-[#1e6fbe] transition-colors"
           >
             <Pencil className="h-3.5 w-3.5" />
           </button>
           <button
             type="button"
-            aria-label="Duplicate test"
-            className="rounded p-1 hover:bg-[#f3f7fb] hover:text-[#2f86d8]"
+            title="Duplicate Test"
+            onClick={() => onDuplicate(row)}
+            className="rounded p-1 text-[#6a849d] hover:bg-[#ebf3fb] hover:text-[#1e6fbe] transition-colors"
           >
             <Copy className="h-3.5 w-3.5" />
           </button>
           <button
             type="button"
-            aria-label="Delete test"
-            className="rounded p-1 hover:bg-[#fdeeee] hover:text-[#db6f6f]"
+            title="Delete Test"
+            onClick={() => onDelete(row)}
+            className="rounded p-1 text-[#b55858] hover:bg-rose-50 hover:text-rose-600 transition-colors"
           >
             <Trash2 className="h-3.5 w-3.5" />
           </button>

@@ -3,13 +3,14 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { LayoutGrid, BookOpen, Archive, BookMarked, Upload, Eye } from "lucide-react";
+import { LayoutGrid, BookOpen, Archive, BookMarked, Layers, Upload, Eye } from "lucide-react";
 
 const tabs = [
   { href: "/questions", label: "Overview", icon: LayoutGrid },
   { href: "/questions/question-bank", label: "Question Bank", icon: BookOpen },
   { href: "/questions/test-archive", label: "Test Archive", icon: Archive },
   { href: "/questions/passages", label: "Passages", icon: BookMarked },
+  { href: "/questions/subjects", label: "Subjects", icon: Layers },
   { href: "/questions/import", label: "Import", icon: Upload },
   { href: "/questions/preview-validation", label: "Preview & Validation", icon: Eye },
 ];

@@ -1,22 +1,30 @@
 "use client";
 
 import { passageEntityFields } from "@/lib/passages-data";
-import { getErrorMessage, useCreatePassageMutation, useGetPassagesQuery } from "@/store/apis";
+import { cn } from "@/lib/utils";
+import {
+  useDeletePassageMutation,
+  useGetPassagesQuery,
+  useTogglePassageStatusMutation,
+  type PassageItem,
+} from "@/store/apis";
 import {
   AlertTriangle,
   CheckCircle2,
-  ImagePlus,
+  ChevronLeft,
+  ChevronRight,
+  Loader2,
   Plus,
+  RotateCw,
   Search,
-  Smartphone,
   Trash2,
-  Upload,
   X,
   XCircle,
 } from "lucide-react";
 import Image from "next/image";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { AddEditPassageModal } from "./AddEditPassageModal";
 import PassageTable from "./PassageTable";
 
 const correctItems = [
@@ -34,321 +42,140 @@ const wrongItems = [
   { label: "Q3 — Numbering is shifted by 1 ✗", cross: true },
 ];
 
-type AddPassageForm = {
-  passageCode: string;
-  title: string;
-  content: string;
-  passageImage: File | null;
-};
-
-function AddPassageModal({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const [createPassage, { isLoading }] = useCreatePassageMutation();
-  const [form, setForm] = useState<AddPassageForm>({
-    passageCode: "",
-    title: "",
-    content: "",
-    passageImage: null,
-  });
-  const previewUrl = useMemo(() => {
-    if (!form.passageImage) return null;
-    return URL.createObjectURL(form.passageImage);
-  }, [form.passageImage]);
+export default function PassagesPage() {
+  const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const limit = 10;
 
   useEffect(() => {
-    return () => {
-      if (previewUrl) URL.revokeObjectURL(previewUrl);
-    };
-  }, [previewUrl]);
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchTerm.trim());
+      setPage(1);
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
 
-  if (!open) return null;
+  const { data, isLoading, isFetching, refetch } = useGetPassagesQuery({
+    page,
+    limit,
+    searchTerm: debouncedSearch || undefined,
+  });
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#2d4056]/30 p-4">
-      <div className="w-full max-w-xl rounded-2xl border border-[#dce7f2] bg-white">
-        <div className="flex items-start justify-between border-b border-[#e6edf5] px-5 py-4">
-          <div>
-            <h3 className="text-xl font-semibold text-[#2f3f52]">Add Passage</h3>
-            <p className="text-xs text-[#8ea1b4]">
-              Create a passage block and upload an optional image
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-md p-1 text-[#8ea1b5] hover:bg-[#f4f8fc]"
-            aria-label="Close"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
+  const [toggleStatus] = useTogglePassageStatusMutation();
+  const [deletePassage, { isLoading: isDeleting }] = useDeletePassageMutation();
 
-        <div className="space-y-4 px-5 py-4">
-          <label className="block">
-            <span className="mb-1 block text-sm font-medium text-[#4f6d87]">Passage Code</span>
-            <input
-              value={form.passageCode}
-              onChange={(e) => setForm((prev) => ({ ...prev, passageCode: e.target.value }))}
-              className="h-10 w-full rounded-md border border-[#dce7f2] px-3 text-sm outline-none"
-              placeholder="e.g. P-001"
-            />
-          </label>
+  // Modals state
+  const [modalOpen, setModalOpen] = useState(false);
+  const [selectedPassage, setSelectedPassage] = useState<PassageItem | null>(null);
+  const [previewImage, setPreviewImage] = useState<{ url: string; title: string } | null>(null);
+  const [deletingPassage, setDeletingPassage] = useState<PassageItem | null>(null);
 
-          <label className="block">
-            <span className="mb-1 block text-sm font-medium text-[#4f6d87]">Title</span>
-            <input
-              value={form.title}
-              onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value }))}
-              className="h-10 w-full rounded-md border border-[#dce7f2] px-3 text-sm outline-none"
-              placeholder="e.g. Reading Passage"
-            />
-          </label>
-
-          <label className="block">
-            <span className="mb-1 block text-sm font-medium text-[#4f6d87]">Content</span>
-            <textarea
-              value={form.content}
-              onChange={(e) => setForm((prev) => ({ ...prev, content: e.target.value }))}
-              className="min-h-28 w-full rounded-md border border-[#dce7f2] px-3 py-2 text-sm outline-none"
-              placeholder="Paste passage content here"
-            />
-          </label>
-
-          <div>
-            <span className="mb-1 block text-sm font-medium text-[#4f6d87]">Passage Image</span>
-            <label className="group flex cursor-pointer items-center justify-center rounded-xl border border-dashed border-[#c9dbee] bg-[#f8fbff] p-4 transition hover:border-[#2f86d8] hover:bg-[#f3f8ff]">
-              <input
-                type="file"
-                accept="image/*"
-                onChange={(e) =>
-                  setForm((prev) => ({ ...prev, passageImage: e.target.files?.[0] ?? null }))
-                }
-                className="sr-only"
-              />
-
-              {previewUrl ? (
-                <div className="w-full space-y-3">
-                  <div className="relative overflow-hidden rounded-lg border border-[#dce7f2] bg-white shadow-sm">
-                    <Image
-                      src={previewUrl}
-                      alt="Passage preview"
-                      className="h-44 w-full object-cover"
-                      width={800}
-                      height={440}
-                      unoptimized
-                    />
-                    <div className="absolute inset-x-0 bottom-0 bg-linear-to-t from-black/50 to-transparent px-3 py-2 text-xs text-white">
-                      Preview
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-medium text-[#3f5f7a]">
-                        {form.passageImage?.name}
-                      </p>
-                      <p className="text-[11px] text-[#8ea1b4]">
-                        {form.passageImage ? `${Math.round(form.passageImage.size / 1024)} KB` : ""}
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setForm((prev) => ({ ...prev, passageImage: null }))}
-                      className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-md border border-[#dce7f2] bg-white px-3 text-xs font-medium text-[#c05050] hover:bg-[#fff5f5]"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                      Remove
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div className="flex flex-col items-center gap-2 py-4 text-center">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-full border border-[#d7e6f4] bg-white text-[#2f86d8]">
-                    <ImagePlus className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-[#3f5f7a]">
-                      Click to upload passage image
-                    </p>
-                    <p className="mt-0.5 text-xs text-[#8ea1b4]">
-                      PNG, JPG or WebP, up to your browser limit
-                    </p>
-                  </div>
-                  <div className="inline-flex items-center gap-1 rounded-full border border-[#dce7f2] bg-white px-2.5 py-1 text-[11px] text-[#587189]">
-                    <Upload className="h-3.5 w-3.5" />
-                    Browse files
-                  </div>
-                </div>
-              )}
-            </label>
-          </div>
-        </div>
-
-        <div className="flex items-center justify-end gap-2 border-t border-[#e6edf5] px-5 py-3">
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-md px-4 py-2 text-sm font-medium text-[#6f8194] hover:bg-[#f5f9fd]"
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            disabled={isLoading}
-            onClick={async () => {
-              try {
-                await createPassage(form).unwrap();
-                toast.success("Passage created successfully.");
-                onClose();
-                setForm({ passageCode: "", title: "", content: "", passageImage: null });
-              } catch (error) {
-                const message =
-                  (error as { data?: { message?: string }; error?: string } | undefined)?.data
-                    ?.message ??
-                  (error as { data?: { message?: string }; error?: string } | undefined)?.error ??
-                  "Unable to create passage.";
-                toast.error(message);
-              }
-            }}
-            className="rounded-md bg-[#2f86d8] px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {isLoading ? "Saving..." : "Save Passage"}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function UpdatePassageModal({
-  open,
-  onClose,
-  passageId,
-}: {
-  open: boolean;
-  onClose: () => void;
-  passageId: string | null;
-}) {
-  if (!open || !passageId) return null;
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#2d4056]/30 p-4">
-      <div className="w-full max-w-xl rounded-2xl border border-[#dce7f2] bg-white">
-        <div className="flex items-start justify-between border-b border-[#e6edf5] px-5 py-4">
-          <div>
-            <h3 className="text-xl font-semibold text-[#2f3f52]">Update Passage</h3>
-            <p className="text-xs text-[#8ea1b4]">{passageId}</p>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-md p-1 text-[#8ea1b5] hover:bg-[#f4f8fc]"
-            aria-label="Close"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-
-        <div className="px-5 py-4 text-sm text-[#5e768e]">
-          Update flow is ready for the future endpoint.
-        </div>
-
-        <div className="flex justify-end border-t border-[#e6edf5] px-5 py-3">
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-md border border-[#d4e2ef] px-4 py-2 text-sm text-[#556f88] hover:bg-[#f5f9fd]"
-          >
-            Close
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-export default function PassagesPage() {
-  const [search, setSearch] = useState("");
-  const [openAdd, setOpenAdd] = useState(false);
-  const [editId, setEditId] = useState<string | null>(null);
-
-  const { data, isLoading, isFetching, isError, error } = useGetPassagesQuery({
+  const passages = data?.data ?? [];
+  const meta = data?.meta ?? {
+    total: passages.length,
     page: 1,
     limit: 10,
-    searchTerm: search.trim() || undefined,
-  });
+    totalPages: Math.ceil(passages.length / 10) || 1,
+  };
 
-  useEffect(() => {
-    if (!isError) return;
-    toast.error(getErrorMessage(error, "Unable to load passages."));
-  }, [error, isError]);
+  const handleToggleStatus = async (id: string) => {
+    try {
+      await toggleStatus(id).unwrap();
+      toast.success("Passage status updated");
+    } catch (err: unknown) {
+      const msg =
+        (err as { data?: { message?: string } })?.data?.message || "Failed to update passage status";
+      toast.error(msg);
+    }
+  };
 
-  const filteredRows = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    const passages = data?.data ?? [];
-    if (!q) return passages;
-    return passages.filter(
-      (r) =>
-        r._id.toLowerCase().includes(q) ||
-        r.passageCode.toLowerCase().includes(q) ||
-        r.title.toLowerCase().includes(q) ||
-        r.content.toLowerCase().includes(q)
-    );
-  }, [data, search]);
+  const handleDeleteConfirm = async () => {
+    if (!deletingPassage) return;
+    try {
+      await deletePassage(deletingPassage._id).unwrap();
+      toast.success("Passage deleted successfully");
+      setDeletingPassage(null);
+    } catch (err: unknown) {
+      const msg =
+        (err as { data?: { message?: string } })?.data?.message || "Failed to delete passage";
+      toast.error(msg);
+    }
+  };
 
   return (
-    <div className="space-y-3">
-      <section className="flex flex-wrap items-start justify-between gap-3">
+    <div className="space-y-4">
+      {/* Header */}
+      <section className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h2 className="text-base font-semibold text-[#3f5f7a]">Passage System</h2>
-          <p className="text-sm text-[#7e95ab]">
-            Manage shared text blocks linked to multiple questions
+          <h2 className="text-lg font-bold text-[#273d52]">Passage System</h2>
+          <p className="text-xs text-[#6e859b]">
+            Manage shared reading passages and comprehension materials linked to questions
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => setOpenAdd(true)}
-          className="inline-flex h-9 items-center gap-1.5 rounded-md bg-[#2f86d8] px-3 text-xs font-medium text-white hover:bg-[#2a78c6]"
-        >
-          <Plus className="h-3.5 w-3.5" />
-          Add Passage
-        </button>
+
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => refetch()}
+            disabled={isFetching}
+            title="Refresh list"
+            className="inline-flex h-9 items-center justify-center rounded-lg border border-[#dce7f2] bg-white px-2.5 text-[#587189] shadow-xs hover:bg-[#f8fbff] disabled:opacity-50"
+          >
+            <RotateCw className={cn("h-4 w-4", isFetching && "animate-spin text-[#1e6fbe]")} />
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setSelectedPassage(null);
+              setModalOpen(true);
+            }}
+            className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-[#2563eb] px-3.5 text-xs font-semibold text-white shadow-xs transition-colors hover:bg-[#1d4ed8]"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            Add Passage
+          </button>
+        </div>
       </section>
 
-      <section className="flex items-start gap-2.5 rounded-lg border border-[#f5d97d] bg-[#fffbea] px-4 py-3">
-        <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-[#c48a2e]" />
+      {/* Critical Rule Banner */}
+      <section className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50/80 px-4 py-3.5 shadow-2xs">
+        <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
         <div>
-          <p className="text-xs font-semibold text-[#8a6120]">
+          <p className="text-xs font-bold text-amber-900">
             Critical Rule: A passage is NOT a question
           </p>
-          <p className="mt-0.5 text-xs text-[#a07430]">
-            A passage does not take a question number. It is a shared content block (text/image)
-            displayed before its linked questions. Question numbering continues normally - the
-            passage itself is not counted.
+          <p className="mt-0.5 text-xs text-amber-700 leading-relaxed">
+            A passage does not consume a question number. It is a shared content container (text/image)
+            displayed above its linked questions. Question numbering continues consecutively in student view.
           </p>
         </div>
       </section>
 
-      <section className="grid gap-3 md:grid-cols-2">
-        <div className="rounded-lg border border-[#c8e6d5] bg-white p-4">
-          <div className="mb-3 flex items-center gap-1.5">
-            <CheckCircle2 className="h-4 w-4 text-[#3ea666]" />
-            <span className="text-sm font-semibold text-[#2d7a52]">Correct Implementation</span>
+      {/* Architecture Cards: Correct vs Wrong */}
+      <section className="grid gap-3.5 md:grid-cols-2">
+        <div className="rounded-xl border border-emerald-200 bg-white p-4 shadow-xs">
+          <div className="mb-2.5 flex items-center gap-2">
+            <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+            <span className="text-xs font-bold text-emerald-900">Correct Implementation</span>
           </div>
-          <div className="space-y-1.5 rounded-md border border-[#c8e6d5] bg-[#f1fbf5] p-3">
+          <div className="space-y-1.5 rounded-lg border border-emerald-100 bg-[#f0fbf5] p-3">
             {correctItems.map((item, i) => (
               <div
                 key={i}
-                className={
+                className={cn(
+                  "text-xs",
                   item.green
-                    ? "text-xs font-medium text-[#2d7a52]"
+                    ? "font-semibold text-emerald-700"
                     : item.highlight
-                      ? "flex items-center gap-1.5 text-xs font-medium text-[#4a93d9]"
-                      : item.muted
-                        ? "pl-4 text-xs text-[#90a3b6]"
-                        : "pl-4 text-xs text-[#5e768e]"
-                }
+                    ? "flex items-center gap-1.5 font-semibold text-[#1e6fbe]"
+                    : item.muted
+                    ? "pl-4 text-[#8ea3b8]"
+                    : "pl-4 text-[#506880]"
+                )}
               >
                 {item.highlight && !item.green && (
-                  <span className="inline-flex h-4 w-4 shrink-0 items-center justify-center rounded bg-[#d6eaf6] text-[9px] font-bold text-[#2f86d8]">
+                  <span className="inline-flex h-4 w-4 shrink-0 items-center justify-center rounded bg-[#dcecfc] text-[9px] font-bold text-[#1e6fbe]">
                     P
                   </span>
                 )}
@@ -358,68 +185,190 @@ export default function PassagesPage() {
           </div>
         </div>
 
-        <div className="rounded-lg border border-[#f4d7d7] bg-white p-4">
-          <div className="mb-3 flex items-center gap-1.5">
-            <XCircle className="h-4 w-4 text-[#db6f6f]" />
-            <span className="text-sm font-semibold text-[#b04040]">Wrong Implementation</span>
+        <div className="rounded-xl border border-rose-200 bg-white p-4 shadow-xs">
+          <div className="mb-2.5 flex items-center gap-2">
+            <XCircle className="h-4 w-4 text-rose-600" />
+            <span className="text-xs font-bold text-rose-900">Wrong Implementation</span>
           </div>
-          <div className="space-y-1.5 rounded-md border border-[#f4d7d7] bg-[#fdf3f3] p-3">
+          <div className="space-y-1.5 rounded-lg border border-rose-100 bg-[#fff5f5] p-3">
             {wrongItems.map((item, i) => (
-              <div key={i} className="flex items-center gap-1.5 text-xs text-[#c05050]">
-                <span className="inline-flex h-4 w-5 shrink-0 items-center justify-center rounded bg-[#fde8e8] text-[9px] font-bold text-[#db6f6f]">
+              <div key={i} className="flex items-center gap-1.5 text-xs text-rose-600">
+                <span className="inline-flex h-4 w-5 shrink-0 items-center justify-center rounded bg-rose-100 text-[9px] font-bold text-rose-700">
                   Q{i + 1}
                 </span>
-                <span className="line-through opacity-70">{item.label.replace(" — ", " ")}</span>
-                <XCircle className="h-3 w-3 shrink-0 text-[#db6f6f]" />
+                <span className="line-through opacity-80">{item.label.replace(" — ", " ")}</span>
+                <XCircle className="h-3 w-3 shrink-0 text-rose-500" />
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      <section className="rounded-lg border border-[#dce7f2] bg-white p-4">
-        <h3 className="mb-3 text-sm font-semibold text-[#3f5f7a]">Passage Entity Fields</h3>
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
+      {/* Search Input */}
+      <section className="rounded-xl border border-[#dce7f2] bg-white p-3 shadow-xs">
+        <div className="relative">
+          <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-[#9ab0c3]" />
+          <input
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Search passages by code, title, or content keywords..."
+            className="h-9 w-full rounded-lg border border-[#dce7f2] bg-[#f8fbff] pr-3 pl-9 text-xs text-[#2c445c] outline-none transition-colors focus:border-[#7ab1e8] focus:bg-white"
+          />
+        </div>
+      </section>
+
+      {/* Table */}
+      <PassageTable
+        rows={passages}
+        startIndex={(page - 1) * limit}
+        isLoading={isLoading}
+        onEdit={(p) => {
+          setSelectedPassage(p);
+          setModalOpen(true);
+        }}
+        onToggleStatus={handleToggleStatus}
+        onDelete={(p) => setDeletingPassage(p)}
+        onPreviewImage={(url, title) => setPreviewImage({ url, title })}
+      />
+
+      {/* Pagination Controls */}
+      <div className="flex flex-col items-center justify-between gap-3 px-1 py-2 sm:flex-row">
+        <p className="text-xs text-[#6e859b]">
+          Showing <span className="font-semibold text-[#273d52]">{passages.length}</span> of{" "}
+          <span className="font-semibold text-[#273d52]">{meta.total}</span> passages
+        </p>
+
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            disabled={page <= 1 || isLoading}
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            className="inline-flex h-8 items-center gap-1 rounded-lg border border-[#dce7f2] bg-white px-2.5 text-xs font-semibold text-[#48637e] shadow-xs hover:bg-[#f8fbff] disabled:opacity-40"
+          >
+            <ChevronLeft className="h-3.5 w-3.5" />
+            Previous
+          </button>
+          <span className="px-2 text-xs font-medium text-[#6e859b]">
+            Page {meta.page} of {meta.totalPages || 1}
+          </span>
+          <button
+            type="button"
+            disabled={page >= (meta.totalPages || 1) || isLoading}
+            onClick={() => setPage((p) => p + 1)}
+            className="inline-flex h-8 items-center gap-1 rounded-lg border border-[#dce7f2] bg-white px-2.5 text-xs font-semibold text-[#48637e] shadow-xs hover:bg-[#f8fbff] disabled:opacity-40"
+          >
+            Next
+            <ChevronRight className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      </div>
+
+      {/* Entity Specs */}
+      <section className="rounded-xl border border-[#dce7f2] bg-white p-4 shadow-xs">
+        <h3 className="mb-3 text-xs font-bold tracking-wider text-[#58738e] uppercase">
+          Passage Data Schema
+        </h3>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-5">
           {passageEntityFields.map((field) => (
             <div
               key={field.label}
-              className="rounded-md border border-[#dce7f2] bg-[#f8fbff] p-2.5"
+              className="rounded-lg border border-[#dce7f2] bg-[#f8fbff] p-2.5"
             >
-              <p className="text-xs font-semibold text-[#3f5f7a]">{field.label}</p>
-              {field.desc && <p className="mt-0.5 text-[10px] text-[#90a3b6]">{field.desc}</p>}
+              <p className="text-xs font-bold text-[#2d445c]">{field.label}</p>
+              {field.desc && <p className="mt-0.5 text-[10px] text-[#8aa0b4]">{field.desc}</p>}
             </div>
           ))}
         </div>
       </section>
 
-      <section className="rounded-lg border border-[#dce7f2] bg-white p-4">
-        <div className="mb-3 flex items-center gap-1.5">
-          <Smartphone className="h-4 w-4 text-[#4a93d9]" />
-          <h3 className="text-sm font-semibold text-[#3f5f7a]">App Preview - Passage Display</h3>
-        </div>
-        <div className="text-sm text-[#5e768e]">Preview stays unchanged.</div>
-      </section>
-
-      <section className="rounded-lg border border-[#dce7f2] bg-white p-3">
-        <div className="relative">
-          <Search className="pointer-events-none absolute top-1/2 left-2.5 h-4 w-4 -translate-y-1/2 text-[#9ab0c3]" />
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search passages..."
-            className="h-9 w-full rounded-md border border-[#dce7f2] bg-[#f8fbff] pr-3 pl-8 text-sm text-[#3f5f7a] outline-none placeholder:text-[#9ab0c3] focus:border-[#2f86d8]"
-          />
-        </div>
-      </section>
-
-      <PassageTable
-        rows={filteredRows}
-        isLoading={isLoading || isFetching}
-        onEdit={(id) => setEditId(id)}
+      {/* Modals */}
+      <AddEditPassageModal
+        open={modalOpen}
+        passage={selectedPassage}
+        onClose={() => {
+          setModalOpen(false);
+          setSelectedPassage(null);
+        }}
       />
 
-      <AddPassageModal open={openAdd} onClose={() => setOpenAdd(false)} />
-      <UpdatePassageModal open={!!editId} passageId={editId} onClose={() => setEditId(null)} />
+      {/* Image Preview Modal */}
+      {previewImage && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-[#1e293b]/70 p-4 backdrop-blur-xs"
+          onClick={() => setPreviewImage(null)}
+        >
+          <div
+            className="relative max-h-[90vh] max-w-3xl overflow-hidden rounded-2xl border border-white/20 bg-white p-3 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-[#e9eff6] px-3 pb-2 mb-2">
+              <span className="text-xs font-semibold text-[#273d52] truncate">
+                {previewImage.title}
+              </span>
+              <button
+                type="button"
+                onClick={() => setPreviewImage(null)}
+                className="rounded p-1 text-[#8aa0b4] hover:bg-[#f1f6fb]"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="overflow-auto max-h-[75vh]">
+              <Image
+                src={previewImage.url}
+                alt={previewImage.title}
+                width={800}
+                height={600}
+                className="mx-auto h-auto max-w-full rounded object-contain"
+                unoptimized
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deletingPassage && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#1e293b]/45 p-4 backdrop-blur-xs">
+          <div className="w-full max-w-md rounded-2xl border border-rose-200 bg-white p-5 shadow-2xl">
+            <div className="flex items-start gap-3">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-rose-50 text-rose-600 border border-rose-200">
+                <Trash2 className="h-5 w-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-slate-800">Delete Passage</h3>
+                <p className="text-xs text-rose-600">
+                  Are you sure? Any questions linked to this passage will remain, but the passage container will be removed.
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-4 rounded-xl border border-[#e8edf2] bg-[#f8fbff] p-3 text-xs text-[#4f6d87]">
+              <p className="font-semibold text-[#2d4256]">{deletingPassage.title}</p>
+              <p className="mt-1 font-mono text-[#869ab0]">Code: {deletingPassage.passageCode}</p>
+            </div>
+
+            <div className="mt-4 flex items-center justify-end gap-2 border-t border-[#e6edf5] pt-3">
+              <button
+                type="button"
+                disabled={isDeleting}
+                onClick={() => setDeletingPassage(null)}
+                className="rounded-lg px-4 py-2 text-xs font-semibold text-[#6f8194] hover:bg-[#f5f9fd]"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={isDeleting}
+                onClick={handleDeleteConfirm}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-rose-600 px-4 py-2 text-xs font-semibold text-white hover:bg-rose-700 disabled:opacity-60"
+              >
+                {isDeleting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Confirm Delete"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
