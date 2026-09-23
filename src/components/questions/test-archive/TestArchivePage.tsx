@@ -4,8 +4,14 @@ import { cn } from "@/lib/utils";
 import {
   useGetMetaFiltersQuery,
   useGetTestArchiveQuery,
+  useRestoreTestMutation,
+  usePermanentDeleteTestMutation,
+  useBulkArchiveTestsMutation,
+  useBulkRestoreTestsMutation,
+  useBulkPermanentDeleteTestsMutation,
   type TestArchiveItem,
 } from "@/store/apis";
+import { toast } from "sonner";
 import {
   ChevronLeft,
   ChevronRight,
@@ -26,6 +32,7 @@ import {
   DuplicateTestModal,
   ViewTestQuestionsModal,
 } from "./TestModals";
+import { ConfirmDeleteModal } from "../question-bank/ConfirmDeleteModal";
 
 export default function TestArchivePage() {
   // Filters & State
@@ -38,6 +45,8 @@ export default function TestArchivePage() {
   const [status, setStatus] = useState<string>("all");
   const [page, setPage] = useState(1);
   const limit = 10;
+  
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
   // Search debounce (400ms)
   useEffect(() => {
@@ -48,6 +57,10 @@ export default function TestArchivePage() {
     return () => clearTimeout(timer);
   }, [searchTerm]);
 
+  useEffect(() => {
+    setSelectedIds([]);
+  }, [page, examType, year, testType, access, status, debouncedSearch]);
+
   // Modal states
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [editingTest, setEditingTest] = useState<TestArchiveItem | null>(null);
@@ -55,6 +68,7 @@ export default function TestArchivePage() {
   const [copyYearOpen, setCopyYearOpen] = useState(false);
   const [viewTestId, setViewTestId] = useState<string | null>(null);
   const [deletingTest, setDeletingTest] = useState<TestArchiveItem | null>(null);
+  const [deleteConfirmParams, setDeleteConfirmParams] = useState<{ type: "single" | "bulk", id?: string } | null>(null);
 
   // Queries
   const { data: metaData } = useGetMetaFiltersQuery();
@@ -74,12 +88,96 @@ export default function TestArchivePage() {
     status: status !== "all" ? status : undefined,
   });
 
+  const [restoreTest] = useRestoreTestMutation();
+  const [permanentDeleteTest] = usePermanentDeleteTestMutation();
+  const [bulkArchiveTests, { isLoading: isBulkArchiving }] = useBulkArchiveTestsMutation();
+  const [bulkRestoreTests, { isLoading: isBulkRestoring }] = useBulkRestoreTestsMutation();
+  const [bulkPermanentDeleteTests, { isLoading: isBulkDeleting }] = useBulkPermanentDeleteTestsMutation();
+
+  const isBulkLoading = isBulkArchiving || isBulkRestoring || isBulkDeleting;
+
   const tests = archiveData?.data ?? [];
   const meta = archiveData?.meta ?? {
     total: tests.length,
     page: 1,
     limit: 10,
     totalPages: Math.ceil(tests.length / 10) || 1,
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.length === tests.length && tests.length > 0) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(tests.map((t) => t._id));
+    }
+  };
+
+  const toggleSelectOne = (id: string) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
+    );
+  };
+
+  const handleBulkArchive = async () => {
+    if (!selectedIds.length) return;
+    try {
+      await bulkArchiveTests({ testIds: selectedIds }).unwrap();
+      toast.success(`${selectedIds.length} tests archived`);
+      setSelectedIds([]);
+    } catch {
+      toast.error("Failed to archive tests");
+    }
+  };
+
+  const handleBulkRestore = async () => {
+    if (!selectedIds.length) return;
+    try {
+      await bulkRestoreTests({ testIds: selectedIds, targetStatus: "published" }).unwrap();
+      toast.success(`${selectedIds.length} tests restored to published state`);
+      setSelectedIds([]);
+    } catch {
+      toast.error("Failed to restore tests");
+    }
+  };
+
+  const handleBulkPermanentDelete = () => {
+    if (!selectedIds.length) return;
+    setDeleteConfirmParams({ type: "bulk" });
+  };
+  
+  const executeBulkPermanentDelete = async () => {
+    if (!selectedIds.length) return;
+    try {
+      await bulkPermanentDeleteTests({ testIds: selectedIds }).unwrap();
+      toast.success(`${selectedIds.length} tests permanently deleted`);
+      setSelectedIds([]);
+      setDeleteConfirmParams(null);
+    } catch {
+      toast.error("Failed to permanently delete tests");
+    }
+  };
+
+  const handleRestore = async (test: TestArchiveItem) => {
+    try {
+      await restoreTest({ testId: test._id, targetStatus: "published" }).unwrap();
+      toast.success("Test restored successfully");
+    } catch {
+      toast.error("Failed to restore test");
+    }
+  };
+
+  const handlePermanentDelete = (test: TestArchiveItem) => {
+    setDeleteConfirmParams({ type: "single", id: test._id });
+  };
+  
+  const executePermanentDelete = async (id: string) => {
+    try {
+      await permanentDeleteTest(id).unwrap();
+      toast.success("Test permanently deleted");
+      setDeleteConfirmParams(null);
+    } catch {
+      toast.error("Failed to permanently delete test");
+    }
   };
 
   const handleResetFilters = () => {
@@ -241,6 +339,7 @@ export default function TestArchivePage() {
             <option value="published">Published</option>
             <option value="draft">Draft</option>
             <option value="hidden">Hidden</option>
+            <option value="archived">Archived</option>
           </select>
 
           {hasActiveFilters && (
@@ -256,18 +355,66 @@ export default function TestArchivePage() {
         </div>
       </section>
 
+      {/* Bulk Actions Bar */}
+      {selectedIds.length > 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#b9d6f3] bg-[#edf6fd] p-3 shadow-sm transition-all">
+          <p className="text-xs font-semibold text-[#1e6fbe]">
+            {selectedIds.length} test(s) selected
+          </p>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setSelectedIds([])}
+              className="px-3 py-1.5 text-xs font-semibold text-[#587189] hover:bg-[#dcebf8] rounded-lg transition-colors"
+            >
+              Clear
+            </button>
+            {status === "archived" ? (
+              <>
+                <button
+                  disabled={isBulkLoading}
+                  onClick={handleBulkRestore}
+                  className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-emerald-700 disabled:opacity-50"
+                >
+                  Restore Selected
+                </button>
+                <button
+                  disabled={isBulkLoading}
+                  onClick={handleBulkPermanentDelete}
+                  className="rounded-lg bg-rose-600 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-rose-700 disabled:opacity-50"
+                >
+                  Permanently Delete
+                </button>
+              </>
+            ) : (
+              <button
+                disabled={isBulkLoading}
+                onClick={handleBulkArchive}
+                className="rounded-lg bg-rose-600 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-rose-700 disabled:opacity-50"
+              >
+                Archive Selected
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Table */}
       <TestArchiveTable
         rows={tests}
         startIndex={(page - 1) * limit}
-        isLoading={isLoading}
-        onView={(t) => setViewTestId(t._id)}
-        onEdit={(t) => {
-          setEditingTest(t);
+        isLoading={isLoading || isFetching}
+        selectedIds={selectedIds}
+        onSelectAll={toggleSelectAll}
+        onSelectOne={toggleSelectOne}
+        onView={(row) => setViewTestId(row._id)}
+        onEdit={(row) => {
+          setEditingTest(row);
           setCreateModalOpen(true);
         }}
-        onDuplicate={(t) => setDuplicatingTest(t)}
-        onDelete={(t) => setDeletingTest(t)}
+        onDuplicate={(row) => setDuplicatingTest(row)}
+        onDelete={(row) => setDeletingTest(row)}
+        onRestore={handleRestore}
+        onPermanentDelete={handlePermanentDelete}
       />
 
       {/* Pagination Controls */}
@@ -337,6 +484,21 @@ export default function TestArchivePage() {
         open={!!deletingTest}
         test={deletingTest}
         onClose={() => setDeletingTest(null)}
+      />
+
+      <ConfirmDeleteModal
+        open={!!deleteConfirmParams}
+        title={deleteConfirmParams?.type === "bulk" ? "Permanently Delete Multiple Tests?" : "Permanently Delete Test?"}
+        description={`Are you sure you want to permanently delete ${deleteConfirmParams?.type === "bulk" ? "these tests" : "this test"}? This action cannot be undone.`}
+        isLoading={isBulkDeleting}
+        onClose={() => setDeleteConfirmParams(null)}
+        onConfirm={() => {
+          if (deleteConfirmParams?.type === "bulk") {
+            executeBulkPermanentDelete();
+          } else if (deleteConfirmParams?.id) {
+            executePermanentDelete(deleteConfirmParams.id);
+          }
+        }}
       />
     </div>
   );

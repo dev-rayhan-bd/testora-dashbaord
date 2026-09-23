@@ -11,8 +11,10 @@ const tabs = [
   { href: "/questions/test-archive", label: "Test Archive", icon: Archive },
   { href: "/questions/passages", label: "Passages", icon: BookMarked },
   { href: "/questions/subjects", label: "Subjects", icon: Layers },
-  { href: "/questions/import", label: "Import", icon: Upload },
-  { href: "/questions/preview-validation", label: "Preview & Validation", icon: Eye },
+  { href: "/questions/faculties", label: "Faculties", icon: Layers },
+  { href: "/questions/departments", label: "Departments", icon: Layers },
+  // { href: "/questions/import", label: "Import", icon: Upload },
+  // { href: "/questions/preview-validation", label: "Preview & Validation", icon: Eye },
 ];
 
 export default function QuestionsLayout({ children }: { children: React.ReactNode }) {

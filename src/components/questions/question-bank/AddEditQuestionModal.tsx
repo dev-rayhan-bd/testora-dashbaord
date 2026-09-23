@@ -62,6 +62,8 @@ function QuestionModalDialog({
   const [updateQuestion, { isLoading: isUpdating }] = useUpdateQuestionMutation();
   const isSubmitting = isAdding || isUpdating;
 
+  const [draftQuestions, setDraftQuestions] = useState<any[]>([]);
+
   // Form State
   const [examType, setExamType] = useState<string>(() => questionToEdit?.examType || "matura");
   const [year, setYear] = useState<number>(() => questionToEdit?.year || new Date().getFullYear());
@@ -166,76 +168,132 @@ function QuestionModalDialog({
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
+  const validateForm = () => {
     if (!questionText.trim()) {
       toast.error("Please enter the question text");
-      return;
+      return false;
     }
 
     const filledOptions = options.filter((o) => o.text.trim().length > 0);
     if (filledOptions.length < 2) {
       toast.error("Please provide at least 2 options");
-      return;
+      return false;
     }
 
     if (examType === "provime") {
       if (!faculty) {
         toast.error("Please select a faculty for entrance exam (provime)");
-        return;
+        return false;
       }
       if (departments.length === 0) {
         toast.error("Please select at least one department");
-        return;
+        return false;
       }
     } else {
       if (!subject && filteredSubjects.length > 0) {
         toast.error("Please select a subject");
-        return;
+        return false;
       }
+    }
+    return true;
+  };
+
+  const buildCurrentPayload = () => {
+    return {
+      examType,
+      year,
+      questionText: questionText.trim(),
+      options: options.map((o) => ({ text: o.text.trim() })),
+      correctOptionIndex,
+      access,
+      difficultyLevel,
+      status,
+      subject: examType !== "provime" ? subject : undefined,
+      faculty: examType === "provime" ? faculty : undefined,
+      departments: examType === "provime" ? departments : undefined,
+      passage: passage || undefined,
+      explanation: explanation.trim() || undefined,
+      question_image: imageFile,
+    };
+  };
+
+  const handleQueueQuestion = () => {
+    if (!validateForm()) return;
+    const payload = buildCurrentPayload();
+    setDraftQuestions((prev) => [...prev, payload]);
+    
+    // Reset specific fields for next question
+    setQuestionText("");
+    setOptions([{ text: "" }, { text: "" }, { text: "" }, { text: "" }]);
+    setCorrectOptionIndex(0);
+    setExplanation("");
+    handleRemoveImage();
+  };
+
+  const handleSaveAll = async () => {
+    // If the current form has text but wasn't queued, optionally queue it or throw error.
+    // We'll queue it if valid.
+    let finalDrafts = [...draftQuestions];
+    if (questionText.trim()) {
+      if (!validateForm()) return;
+      finalDrafts.push(buildCurrentPayload());
+    }
+
+    if (finalDrafts.length === 0) {
+      toast.error("Please add at least one question");
+      return;
     }
 
     try {
       if (isEditing && questionToEdit) {
+        // Editing a single question
+        const payload = finalDrafts[0];
         await updateQuestion({
           questionId: questionToEdit._id,
-          examType,
-          year,
-          questionText: questionText.trim(),
-          options: options.map((o) => ({ text: o.text.trim() })),
-          correctOptionIndex,
-          access,
-          difficultyLevel,
-          status,
-          subject: examType !== "provime" ? subject : undefined,
-          faculty: examType === "provime" ? faculty : undefined,
-          departments: examType === "provime" ? departments : undefined,
-          passage: passage || undefined,
-          explanation: explanation.trim() || undefined,
-          question_image: imageFile,
+          ...payload,
         }).unwrap();
         toast.success("Question updated successfully");
       } else {
-        await addQuestion({
-          examType,
-          year,
-          questionText: questionText.trim(),
-          options: options.map((o) => ({ text: o.text.trim() })),
-          correctOptionIndex,
-          access,
-          difficultyLevel,
-          status,
-          subject: examType !== "provime" ? subject : undefined,
-          faculty: examType === "provime" ? faculty : undefined,
-          departments: examType === "provime" ? departments : undefined,
-          passage: passage || undefined,
-          explanation: explanation.trim() || undefined,
-          question_image: imageFile,
-        }).unwrap();
-        toast.success("Question created successfully");
-      }
+        const imagesToUpload: File[] = [];
+        const payloadQuestions = finalDrafts.map((draft) => {
+          const draftPayload = { ...draft };
+          if (draftPayload.question_image) {
+            imagesToUpload.push(draftPayload.question_image);
+            draftPayload.imageName = draftPayload.question_image.name;
+            delete draftPayload.question_image;
+          }
+          return draftPayload;
+        });
 
+        // The global base payload pulled from the first draft
+        // (which represents the global Classification Grid state)
+        const basePayload = {
+          examType: finalDrafts[0].examType,
+          year: finalDrafts[0].year,
+          access: finalDrafts[0].access,
+          difficultyLevel: finalDrafts[0].difficultyLevel,
+          status: finalDrafts[0].status,
+          subject: finalDrafts[0].subject,
+          faculty: finalDrafts[0].faculty,
+          departments: finalDrafts[0].departments,
+          passage: finalDrafts[0].passage,
+        };
+
+        if (payloadQuestions.length === 1) {
+          await addQuestion({
+            ...basePayload,
+            ...payloadQuestions[0],
+            question_image: imagesToUpload.length > 0 ? imagesToUpload[0] : undefined,
+          }).unwrap();
+        } else {
+          await addQuestion({
+            ...basePayload,
+            questions: payloadQuestions,
+            question_image: imagesToUpload.length > 0 ? imagesToUpload : undefined,
+          }).unwrap();
+        }
+        toast.success(finalDrafts.length === 1 ? "Question created successfully" : `${finalDrafts.length} Questions created successfully`);
+      }
       onSuccess?.();
       onClose();
     } catch (err: unknown) {
@@ -277,7 +335,7 @@ function QuestionModalDialog({
         </div>
 
         {/* Modal Body */}
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
+        <form onSubmit={(e) => { e.preventDefault(); handleSaveAll(); }} className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
           {/* Classification Grid */}
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             <div>
@@ -429,6 +487,28 @@ function QuestionModalDialog({
               </select>
             </div>
           </div>
+
+          {draftQuestions.length > 0 && !isEditing && (
+            <div className="rounded-xl bg-[#f0f6fc] p-4 border border-[#e6edf5]">
+              <div className="mb-2 text-xs font-bold text-[#3f5f7a]">
+                Batch Queue ({draftQuestions.length} Questions)
+              </div>
+              <div className="flex flex-wrap gap-2 items-center">
+                {draftQuestions.map((q, idx) => (
+                  <div key={idx} className="flex items-center gap-1 rounded bg-white border border-[#cbe1f5] px-2 py-1 text-[11px] font-semibold text-[#2563eb] shadow-sm">
+                    <span>Q{idx + 1}: {q.questionText.substring(0, 15)}...</span>
+                    <button 
+                      type="button" 
+                      onClick={() => setDraftQuestions(draftQuestions.filter((_, i) => i !== idx))} 
+                      className="ml-1 text-[#8ea1b5] hover:text-rose-500 transition-colors"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Question Text */}
           <div>
@@ -609,6 +689,17 @@ function QuestionModalDialog({
             >
               Cancel
             </button>
+            {!isEditing && (
+              <button
+                type="button"
+                onClick={(e) => { e.preventDefault(); handleQueueQuestion(); }}
+                disabled={isSubmitting}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-[#cbe1f5] bg-[#edf5fc] px-4 py-2 text-xs font-semibold text-[#2563eb] transition-colors hover:bg-[#deeeff] active:scale-95 disabled:opacity-50"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                Add Another Question
+              </button>
+            )}
             <button
               type="submit"
               disabled={isSubmitting}
@@ -617,12 +708,12 @@ function QuestionModalDialog({
               {isSubmitting ? (
                 <>
                   <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  Saving Question...
+                  Saving...
                 </>
               ) : isEditing ? (
                 "Save Changes"
               ) : (
-                "Create Question"
+                draftQuestions.length > 0 ? `Save All (${draftQuestions.length + (questionText.trim() ? 1 : 0)})` : "Create Question"
               )}
             </button>
           </div>

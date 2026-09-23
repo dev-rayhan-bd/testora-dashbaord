@@ -8,6 +8,11 @@ import {
   useGetQuestionsQuery,
   useLazyGetSingleQuestionQuery,
   useUpdateQuestionStatusMutation,
+  useRestoreQuestionMutation,
+  usePermanentDeleteQuestionMutation,
+  useBulkArchiveQuestionsMutation,
+  useBulkRestoreQuestionsMutation,
+  useBulkPermanentDeleteQuestionsMutation,
   type QuestionListItem,
   type SingleQuestionResponse,
 } from "@/store/apis";
@@ -29,6 +34,7 @@ import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import AddEditQuestionModal from "./AddEditQuestionModal";
 import { DeleteQuestionModal, QuestionStatusModal } from "./QuestionActionModals";
+import { ConfirmDeleteModal } from "./ConfirmDeleteModal";
 
 const STATUS_TABS = [
   { label: "All", value: "All" },
@@ -236,6 +242,10 @@ export default function QuestionBankPage() {
     return () => clearTimeout(timer);
   }, [search]);
 
+  useEffect(() => {
+    setSelectedIds([]);
+  }, [page, statusTab, examTypeFilter, yearFilter, subjectFilter, facultyFilter, accessFilter, difficultyFilter, debouncedSearch]);
+
   // Meta filters query
   const { data: metaData } = useGetMetaFiltersQuery();
   const meta = metaData?.data;
@@ -284,17 +294,40 @@ export default function QuestionBankPage() {
   const [triggerGetSingleQuestion] = useLazyGetSingleQuestionQuery();
   const [updateStatus, { isLoading: isUpdatingStatus }] = useUpdateQuestionStatusMutation();
   const [deleteQuestion, { isLoading: isDeleting }] = useDeleteQuestionMutation();
+  const [restoreQuestion] = useRestoreQuestionMutation();
+  const [permanentDeleteQuestion] = usePermanentDeleteQuestionMutation();
+  const [bulkArchiveQuestions, { isLoading: isBulkArchiving }] = useBulkArchiveQuestionsMutation();
+  const [bulkRestoreQuestions, { isLoading: isBulkRestoring }] = useBulkRestoreQuestionsMutation();
+  const [bulkPermanentDeleteQuestions, { isLoading: isBulkDeleting }] = useBulkPermanentDeleteQuestionsMutation();
+  
+  const isBulkLoading = isBulkArchiving || isBulkRestoring || isBulkDeleting;
 
   // Modals state
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState<QuestionListItem | null>(null);
   const [statusTargetQuestion, setStatusTargetQuestion] = useState<QuestionListItem | null>(null);
   const [deleteTargetQuestion, setDeleteTargetQuestion] = useState<QuestionListItem | null>(null);
   const [viewingQuestion, setViewingQuestion] = useState<SingleQuestionResponse | null>(null);
   const [openActionMenuId, setOpenActionMenuId] = useState<string | null>(null);
+  const [deleteConfirmParams, setDeleteConfirmParams] = useState<{ type: "single" | "bulk", id?: string } | null>(null);
 
   const questions = data?.data ?? [];
   const totalQuestions = data?.meta?.total ?? 0;
+
+  const toggleSelectAll = () => {
+    if (selectedIds.length === questions.length && questions.length > 0) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(questions.map((q) => q._id));
+    }
+  };
+
+  const toggleSelectOne = (id: string) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
+    );
+  };
 
   const handleOpenViewModal = async (questionId: string) => {
     try {
@@ -302,6 +335,68 @@ export default function QuestionBankPage() {
       setViewingQuestion(res.data);
     } catch {
       toast.error("Failed to load question details");
+    }
+  };
+
+  const handleBulkArchive = async () => {
+    if (!selectedIds.length) return;
+    try {
+      await bulkArchiveQuestions({ questionIds: selectedIds }).unwrap();
+      toast.success(`${selectedIds.length} questions archived`);
+      setSelectedIds([]);
+    } catch {
+      toast.error("Failed to archive questions");
+    }
+  };
+
+  const handleBulkRestore = async () => {
+    if (!selectedIds.length) return;
+    try {
+      await bulkRestoreQuestions({ questionIds: selectedIds, targetStatus: "published" }).unwrap();
+      toast.success(`${selectedIds.length} questions restored to published state`);
+      setSelectedIds([]);
+    } catch {
+      toast.error("Failed to restore questions");
+    }
+  };
+
+  const handleBulkPermanentDelete = async () => {
+    if (!selectedIds.length) return;
+    setDeleteConfirmParams({ type: "bulk" });
+  };
+  
+  const executeBulkPermanentDelete = async () => {
+    if (!selectedIds.length) return;
+    try {
+      await bulkPermanentDeleteQuestions({ questionIds: selectedIds }).unwrap();
+      toast.success(`${selectedIds.length} questions permanently deleted`);
+      setSelectedIds([]);
+      setDeleteConfirmParams(null);
+    } catch {
+      toast.error("Failed to permanently delete questions");
+    }
+  };
+
+  const handleRestore = async (id: string) => {
+    try {
+      await restoreQuestion(id).unwrap();
+      toast.success("Question restored successfully");
+    } catch {
+      toast.error("Failed to restore question");
+    }
+  };
+
+  const handlePermanentDelete = (id: string) => {
+    setDeleteConfirmParams({ type: "single", id });
+  };
+  
+  const executePermanentDelete = async (id: string) => {
+    try {
+      await permanentDeleteQuestion(id).unwrap();
+      toast.success("Question permanently deleted");
+      setDeleteConfirmParams(null);
+    } catch {
+      toast.error("Failed to permanently delete question");
     }
   };
 
@@ -576,12 +671,63 @@ export default function QuestionBankPage() {
         </p>
       </div>
 
+      {/* Bulk Actions Bar */}
+      {selectedIds.length > 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#b9d6f3] bg-[#edf6fd] p-3 shadow-sm transition-all">
+          <p className="text-xs font-semibold text-[#1e6fbe]">
+            {selectedIds.length} question(s) selected
+          </p>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setSelectedIds([])}
+              className="px-3 py-1.5 text-xs font-semibold text-[#587189] hover:bg-[#dcebf8] rounded-lg transition-colors"
+            >
+              Clear
+            </button>
+            {statusTab === "archived" ? (
+              <>
+                <button
+                  disabled={isBulkLoading}
+                  onClick={handleBulkRestore}
+                  className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-emerald-700 disabled:opacity-50"
+                >
+                  Restore Selected
+                </button>
+                <button
+                  disabled={isBulkLoading}
+                  onClick={handleBulkPermanentDelete}
+                  className="rounded-lg bg-rose-600 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-rose-700 disabled:opacity-50"
+                >
+                  Permanently Delete
+                </button>
+              </>
+            ) : (
+              <button
+                disabled={isBulkLoading}
+                onClick={handleBulkArchive}
+                className="rounded-lg bg-rose-600 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-rose-700 disabled:opacity-50"
+              >
+                Archive Selected
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Questions Table */}
       <section className="overflow-hidden rounded-xl border border-[#dce7f2] bg-white shadow-xs">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-280 text-left">
+          <table className="w-full min-w-[1100px] text-left">
             <thead className="bg-[#f3f7fb] text-[11px] font-medium tracking-wide text-[#6f859b] uppercase">
               <tr>
+                <th className="px-3.5 py-3 w-10">
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.length === questions.length && questions.length > 0}
+                    onChange={toggleSelectAll}
+                    className="h-3.5 w-3.5 rounded border-[#dce7f2] accent-[#2563eb] cursor-pointer"
+                  />
+                </th>
                 <th className="px-3.5 py-3">SL</th>
                 <th className="px-3.5 py-3">Exam Type</th>
                 <th className="px-3.5 py-3">Year</th>
@@ -600,6 +746,7 @@ export default function QuestionBankPage() {
               {isLoading || isFetching ? (
                 Array.from({ length: 8 }).map((_, idx) => (
                   <tr key={`skel-${idx}`} className="animate-pulse border-b border-[#ecf2f8]">
+                    <td className="px-3.5 py-3.5"><div className="h-3.5 w-3.5 rounded bg-slate-200" /></td>
                     <td className="px-3.5 py-3.5"><div className="h-3 w-6 rounded bg-slate-200" /></td>
                     <td className="px-3.5 py-3.5"><div className="h-5 w-16 rounded bg-slate-200" /></td>
                     <td className="px-3.5 py-3.5"><div className="h-4 w-10 rounded bg-slate-200" /></td>
@@ -625,8 +772,18 @@ export default function QuestionBankPage() {
                   return (
                     <tr
                       key={q._id}
-                      className="border-b border-[#ecf2f8] text-xs text-[#5e768e] transition-colors hover:bg-[#fcfdfe] last:border-b-0"
+                      className={cn("border-b border-[#ecf2f8] text-xs text-[#5e768e] transition-colors hover:bg-[#fcfdfe] last:border-b-0", selectedIds.includes(q._id) && "bg-[#f5f9fd]")}
                     >
+                      {/* Checkbox */}
+                      <td className="px-3.5 py-3">
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.includes(q._id)}
+                          onChange={() => toggleSelectOne(q._id)}
+                          className="h-3.5 w-3.5 rounded border-[#dce7f2] accent-[#2563eb] cursor-pointer"
+                        />
+                      </td>
+
                       {/* 1. SL */}
                       <td className="px-3.5 py-3 font-semibold text-[#8ca0b3]">{sl}</td>
 
@@ -647,7 +804,11 @@ export default function QuestionBankPage() {
 
                       {/* 4. SUBJECT / FACULTY */}
                       <td className="px-3.5 py-3 whitespace-nowrap text-[#405872] font-medium">
-                        {q.subjectName || q.facultyName || "—"}
+                        {q.subjectName || 
+                         (typeof q.subject === "string" ? meta?.subjects?.find(s => s._id === q.subject)?.name : q.subject?.name) || 
+                         q.facultyName || 
+                         (typeof q.faculty === "string" ? meta?.faculties?.find(f => f._id === q.faculty)?.name : q.faculty?.name) || 
+                         "—"}
                       </td>
 
                       {/* 5. ACCESS */}
@@ -682,10 +843,12 @@ export default function QuestionBankPage() {
                       </td>
 
                       {/* 8. CORRECT ANSWER */}
-                      <td className="px-3.5 py-3 max-w-44">
-                        <span className="inline-block truncate rounded-md border border-[#c8ebd4] bg-[#edf8f2] px-2 py-0.5 text-[11px] font-bold text-[#15803d]">
-                          {correctText}
-                        </span>
+                      <td className="px-3.5 py-3">
+                        <div className="max-w-44">
+                          <span title={correctText} className="inline-block w-full truncate rounded-md border border-[#c8ebd4] bg-[#edf8f2] px-2 py-0.5 text-[11px] font-bold text-[#15803d]">
+                            {correctText}
+                          </span>
+                        </div>
                       </td>
 
                       {/* 9. STATUS */}
@@ -737,40 +900,69 @@ export default function QuestionBankPage() {
                                 <Eye className="h-3.5 w-3.5 text-[#8fa2b5]" />
                                 View Details
                               </button>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setEditingQuestion(q);
-                                  setIsAddModalOpen(true);
-                                  setOpenActionMenuId(null);
-                                }}
-                                className="flex w-full items-center gap-2 px-3 py-2 text-xs font-medium text-[#2563eb] transition-colors hover:bg-[#edf4fe]"
-                              >
-                                <Edit2 className="h-3.5 w-3.5" />
-                                Edit Question
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setStatusTargetQuestion(q);
-                                  setOpenActionMenuId(null);
-                                }}
-                                className="flex w-full items-center gap-2 px-3 py-2 text-xs font-medium text-[#d97706] transition-colors hover:bg-[#fffbeb]"
-                              >
-                                <CheckCircle className="h-3.5 w-3.5" />
-                                Change Status
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setDeleteTargetQuestion(q);
-                                  setOpenActionMenuId(null);
-                                }}
-                                className="flex w-full items-center gap-2 px-3 py-2 text-xs font-medium text-rose-600 transition-colors hover:bg-[#fff1f2]"
-                              >
-                                <Trash2 className="h-3.5 w-3.5" />
-                                Delete Question
-                              </button>
+                              {q.status === "archived" ? (
+                                <>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      handleRestore(q._id);
+                                      setOpenActionMenuId(null);
+                                    }}
+                                    className="flex w-full items-center gap-2 px-3 py-2 text-xs font-medium text-emerald-600 transition-colors hover:bg-[#ecfdf5]"
+                                  >
+                                    <RotateCcw className="h-3.5 w-3.5" />
+                                    Restore Question
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      handlePermanentDelete(q._id);
+                                      setOpenActionMenuId(null);
+                                    }}
+                                    className="flex w-full items-center gap-2 px-3 py-2 text-xs font-medium text-rose-600 transition-colors hover:bg-[#fff1f2]"
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                    Permanent Delete
+                                  </button>
+                                </>
+                              ) : (
+                                <>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setEditingQuestion(q);
+                                      setIsAddModalOpen(true);
+                                      setOpenActionMenuId(null);
+                                    }}
+                                    className="flex w-full items-center gap-2 px-3 py-2 text-xs font-medium text-[#2563eb] transition-colors hover:bg-[#edf4fe]"
+                                  >
+                                    <Edit2 className="h-3.5 w-3.5" />
+                                    Edit Question
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setStatusTargetQuestion(q);
+                                      setOpenActionMenuId(null);
+                                    }}
+                                    className="flex w-full items-center gap-2 px-3 py-2 text-xs font-medium text-[#d97706] transition-colors hover:bg-[#fffbeb]"
+                                  >
+                                    <CheckCircle className="h-3.5 w-3.5" />
+                                    Change Status
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setDeleteTargetQuestion(q);
+                                      setOpenActionMenuId(null);
+                                    }}
+                                    className="flex w-full items-center gap-2 px-3 py-2 text-xs font-medium text-rose-600 transition-colors hover:bg-[#fff1f2]"
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                    Archive Question
+                                  </button>
+                                </>
+                              )}
                             </div>
                           )}
                         </div>
@@ -780,7 +972,7 @@ export default function QuestionBankPage() {
                 })
               ) : (
                 <tr>
-                  <td colSpan={11} className="px-5 py-14 text-center">
+                  <td colSpan={12} className="px-5 py-14 text-center">
                     <div className="mx-auto flex flex-col items-center justify-center text-[#90a3b6]">
                       <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#f0f4f9] text-[#7d93a8]">
                         <FileQuestion className="h-6 w-6" />
@@ -840,6 +1032,22 @@ export default function QuestionBankPage() {
         open={!!viewingQuestion}
         question={viewingQuestion}
         onClose={() => setViewingQuestion(null)}
+      />
+
+      {/* Delete Confirmation Modal for Permanent Deletion */}
+      <ConfirmDeleteModal
+        open={!!deleteConfirmParams}
+        title={deleteConfirmParams?.type === "bulk" ? "Permanently Delete Multiple Questions?" : "Permanently Delete Question?"}
+        description={`Are you sure you want to permanently delete ${deleteConfirmParams?.type === "bulk" ? "these questions" : "this question"}? This action cannot be undone.`}
+        isLoading={isBulkDeleting}
+        onClose={() => setDeleteConfirmParams(null)}
+        onConfirm={() => {
+          if (deleteConfirmParams?.type === "bulk") {
+            executeBulkPermanentDelete();
+          } else if (deleteConfirmParams?.id) {
+            executePermanentDelete(deleteConfirmParams.id);
+          }
+        }}
       />
     </div>
   );

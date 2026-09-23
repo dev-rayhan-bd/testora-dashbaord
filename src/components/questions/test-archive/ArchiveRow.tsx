@@ -13,6 +13,10 @@ interface Props {
   onEdit: (row: TestArchiveItem) => void;
   onDuplicate: (row: TestArchiveItem) => void;
   onDelete: (row: TestArchiveItem) => void;
+  isSelected?: boolean;
+  onSelect?: (id: string) => void;
+  onRestore?: (row: TestArchiveItem) => void;
+  onPermanentDelete?: (row: TestArchiveItem) => void;
 }
 
 export default function ArchiveRow({
@@ -22,6 +26,10 @@ export default function ArchiveRow({
   onEdit,
   onDuplicate,
   onDelete,
+  isSelected,
+  onSelect,
+  onRestore,
+  onPermanentDelete,
 }: Props) {
   const [copied, setCopied] = useState(false);
 
@@ -62,7 +70,17 @@ export default function ArchiveRow({
       : 0;
 
   return (
-    <tr className="group border-b border-[#e9eff6] text-xs text-[#526a82] transition-colors hover:bg-[#f6faff]">
+    <tr className={cn("group border-b border-[#e9eff6] text-xs text-[#526a82] transition-colors hover:bg-[#f6faff]", isSelected && "bg-[#f5f9fd]")}>
+      {/* Checkbox */}
+      <td className="px-4 py-3">
+        <input
+          type="checkbox"
+          checked={isSelected}
+          onChange={() => onSelect?.(row._id)}
+          className="h-3.5 w-3.5 rounded border-[#dce7f2] accent-[#2563eb] cursor-pointer"
+        />
+      </td>
+
       {/* 1. Index */}
       <td className="px-4 py-3 font-semibold text-[#1e6fbe]">{serialNumber}</td>
 
@@ -180,30 +198,58 @@ export default function ArchiveRow({
           >
             <Eye className="h-3.5 w-3.5" />
           </button>
-          <button
-            type="button"
-            title="Edit Test"
-            onClick={() => onEdit(row)}
-            className="rounded p-1 text-[#6a849d] hover:bg-[#ebf3fb] hover:text-[#1e6fbe] transition-colors"
-          >
-            <Pencil className="h-3.5 w-3.5" />
-          </button>
-          <button
-            type="button"
-            title="Duplicate Test"
-            onClick={() => onDuplicate(row)}
-            className="rounded p-1 text-[#6a849d] hover:bg-[#ebf3fb] hover:text-[#1e6fbe] transition-colors"
-          >
-            <Copy className="h-3.5 w-3.5" />
-          </button>
-          <button
-            type="button"
-            title="Delete Test"
-            onClick={() => onDelete(row)}
-            className="rounded p-1 text-[#b55858] hover:bg-rose-50 hover:text-rose-600 transition-colors"
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-          </button>
+          
+          {row.status === "archived" ? (
+            <>
+              {onRestore && (
+                <button
+                  type="button"
+                  title="Restore Test"
+                  onClick={() => onRestore(row)}
+                  className="rounded p-1 text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700 transition-colors"
+                >
+                  <Check className="h-3.5 w-3.5" />
+                </button>
+              )}
+              {onPermanentDelete && (
+                <button
+                  type="button"
+                  title="Permanent Delete"
+                  onClick={() => onPermanentDelete(row)}
+                  className="rounded p-1 text-rose-600 hover:bg-rose-50 hover:text-rose-700 transition-colors"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </>
+          ) : (
+            <>
+              <button
+                type="button"
+                title="Edit Test"
+                onClick={() => onEdit(row)}
+                className="rounded p-1 text-[#6a849d] hover:bg-[#ebf3fb] hover:text-[#1e6fbe] transition-colors"
+              >
+                <Pencil className="h-3.5 w-3.5" />
+              </button>
+              <button
+                type="button"
+                title="Duplicate Test"
+                onClick={() => onDuplicate(row)}
+                className="rounded p-1 text-[#6a849d] hover:bg-[#ebf3fb] hover:text-[#1e6fbe] transition-colors"
+              >
+                <Copy className="h-3.5 w-3.5" />
+              </button>
+              <button
+                type="button"
+                title="Archive Test"
+                onClick={() => onDelete(row)}
+                className="rounded p-1 text-[#b55858] hover:bg-rose-50 hover:text-rose-600 transition-colors"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
+            </>
+          )}
         </div>
       </td>
     </tr>

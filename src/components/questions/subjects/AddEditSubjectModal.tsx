@@ -74,7 +74,7 @@ function SubjectFormDialog({
     try {
       if (isEditing && subjectToEdit) {
         await updateSubject({
-          id: subjectToEdit._id,
+          subjectId: subjectToEdit._id,
           name: name.trim(),
           examType,
           nameInEnglish: nameInEnglish.trim() || undefined,

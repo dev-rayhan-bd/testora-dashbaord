@@ -51,7 +51,9 @@ export interface QuestionListItem {
   access: string;
   difficultyLevel: string;
   status: string;
+  subject?: string | { _id: string; name: string } | null;
   subjectName?: string | null;
+  faculty?: string | { _id: string; name: string } | null;
   facultyName?: string | null;
   departmentName?: string | null;
   passageCode?: string | null;
@@ -121,9 +123,9 @@ export interface QuestionListParams {
 export interface CreateQuestionPayload {
   examType: string;
   year: number;
-  questionText: string;
-  options: QuestionOption[];
-  correctOptionIndex: number;
+  questionText?: string;
+  options?: QuestionOption[];
+  correctOptionIndex?: number;
   access?: string;
   difficultyLevel?: string;
   status?: string;
@@ -132,7 +134,8 @@ export interface CreateQuestionPayload {
   departments?: string[];
   passage?: string;
   explanation?: string;
-  question_image?: File | null;
+  question_image?: File | File[] | null;
+  questions?: any[];
 }
 
 export interface UpdateQuestionPayload {
@@ -150,7 +153,8 @@ export interface UpdateQuestionPayload {
   departments?: string[];
   passage?: string;
   explanation?: string;
-  question_image?: File | null;
+  question_image?: File | File[] | null;
+  questions?: any[];
 }
 
 export interface QuestionOverviewData {
@@ -262,6 +266,7 @@ export interface PassageListParams {
   page?: number;
   limit?: number;
   searchTerm?: string;
+  status?: string;
 }
 
 export interface CreatePassagePayload {
@@ -284,13 +289,13 @@ export interface SubjectItem {
   name: string;
   nameInEnglish?: string;
   nameInAlbanian?: string;
-  slug?: string;
-  examType: "matura" | "semi_matura" | "provime" | string;
-  isElective?: boolean;
-  isActive?: boolean;
+  slug: string;
+  examType: string;
+  isElective: boolean;
+  isActive: boolean;
   questionCount?: number;
-  createdAt?: string;
-  updatedAt?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface SubjectListParams {
@@ -298,21 +303,84 @@ export interface SubjectListParams {
   searchTerm?: string;
 }
 
+export interface SubjectListResponse {
+  success: boolean;
+  message: string;
+  data: SubjectItem[];
+}
+
 export interface CreateSubjectPayload {
   name: string;
-  examType: string;
   nameInEnglish?: string;
   nameInAlbanian?: string;
+  examType: string;
   isElective?: boolean;
 }
 
-export interface UpdateSubjectPayload {
-  id: string;
-  name?: string;
-  examType?: string;
+export interface UpdateSubjectPayload extends Partial<CreateSubjectPayload> {
+  subjectId: string;
+}
+
+// -- FACULTY INTERFACES --
+export interface FacultyItem {
+  _id: string;
+  name: string;
   nameInEnglish?: string;
   nameInAlbanian?: string;
-  isElective?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface FacultyListParams {
+  searchTerm?: string;
+}
+
+export interface FacultyListResponse {
+  success: boolean;
+  message: string;
+  data: FacultyItem[];
+}
+
+export interface CreateFacultyPayload {
+  name: string;
+  nameInEnglish?: string;
+  nameInAlbanian?: string;
+}
+
+export interface UpdateFacultyPayload extends Partial<CreateFacultyPayload> {
+  facultyId: string;
+}
+
+// -- DEPARTMENT INTERFACES --
+export interface DepartmentItem {
+  _id: string;
+  name: string;
+  nameInEnglish?: string;
+  nameInAlbanian?: string;
+  faculty: FacultyItem;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface DepartmentListParams {
+  searchTerm?: string;
+  faculty?: string;
+}
+
+export interface DepartmentListResponse {
+  success: boolean;
+  message: string;
+  data: DepartmentItem[];
+}
+
+export interface CreateDepartmentPayload {
+  name: string;
+  nameInEnglish?: string;
+  nameInAlbanian?: string;
+}
+
+export interface UpdateDepartmentPayload extends Partial<CreateDepartmentPayload> {
+  departmentId: string;
 }
 
 export interface ImportCsvIssue {
@@ -373,6 +441,7 @@ function buildPassageQuery(params?: PassageListParams) {
   if (params.page !== undefined) searchParams.set("page", String(params.page));
   if (params.limit !== undefined) searchParams.set("limit", String(params.limit));
   if (params.searchTerm) searchParams.set("searchTerm", params.searchTerm.trim());
+  if (params.status && params.status !== "all") searchParams.set("status", params.status);
 
   const query = searchParams.toString();
   return query ? `?${query}` : "";
@@ -386,6 +455,29 @@ function buildSubjectQuery(params?: SubjectListParams) {
   }
   if (params.searchTerm) {
     searchParams.set("searchTerm", params.searchTerm.trim());
+  }
+  const query = searchParams.toString();
+  return query ? `?${query}` : "";
+}
+
+function buildFacultyQuery(params?: FacultyListParams) {
+  if (!params) return "";
+  const searchParams = new URLSearchParams();
+  if (params.searchTerm) {
+    searchParams.set("searchTerm", params.searchTerm.trim());
+  }
+  const query = searchParams.toString();
+  return query ? `?${query}` : "";
+}
+
+function buildDepartmentQuery(params?: DepartmentListParams) {
+  if (!params) return "";
+  const searchParams = new URLSearchParams();
+  if (params.searchTerm) {
+    searchParams.set("searchTerm", params.searchTerm.trim());
+  }
+  if (params.faculty && params.faculty !== "all") {
+    searchParams.set("faculty", params.faculty);
   }
   const query = searchParams.toString();
   return query ? `?${query}` : "";
@@ -410,7 +502,16 @@ function buildQuestionFormData(payload: CreateQuestionPayload | UpdateQuestionPa
   }
   if (payload.passage) formData.append("passage", payload.passage);
   if (payload.explanation) formData.append("explanation", payload.explanation);
-  if (payload.question_image) formData.append("question_image", payload.question_image);
+  
+  if (payload.question_image) {
+    if (Array.isArray(payload.question_image)) {
+      payload.question_image.forEach((img) => formData.append("question_image", img));
+    } else {
+      formData.append("question_image", payload.question_image);
+    }
+  }
+
+  if (payload.questions) formData.append("questions", JSON.stringify(payload.questions));
 
   return formData;
 }
@@ -486,6 +587,44 @@ export const questionApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: ["Questions"],
     }),
+    restoreQuestion: builder.mutation<ApiEnvelope<QuestionListItem>, string>({
+      query: (questionId) => ({
+        url: `/admin/questions/${questionId}/restore`,
+        method: "POST",
+      }),
+      invalidatesTags: ["Questions"],
+    }),
+    permanentDeleteQuestion: builder.mutation<ApiEnvelope<unknown>, string>({
+      query: (questionId) => ({
+        url: `/admin/questions/${questionId}/permanent`,
+        method: "DELETE",
+      }),
+      invalidatesTags: ["Questions"],
+    }),
+    bulkArchiveQuestions: builder.mutation<ApiEnvelope<unknown>, { questionIds: string[] }>({
+      query: (body) => ({
+        url: "/admin/questions/bulk-archive",
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: ["Questions"],
+    }),
+    bulkRestoreQuestions: builder.mutation<ApiEnvelope<unknown>, { questionIds: string[]; targetStatus?: string }>({
+      query: (body) => ({
+        url: "/admin/questions/bulk-restore",
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: ["Questions"],
+    }),
+    bulkPermanentDeleteQuestions: builder.mutation<ApiEnvelope<unknown>, { questionIds: string[] }>({
+      query: (body) => ({
+        url: "/admin/questions/bulk-permanent-delete",
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: ["Questions"],
+    }),
 
     // 3. Test Archive
     getTestArchive: builder.query<TestArchiveResponse, TestArchiveParams | void>({
@@ -530,6 +669,21 @@ export const questionApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: ["Questions"],
     }),
+    restoreTest: builder.mutation<ApiEnvelope<TestArchiveItem>, { testId: string; targetStatus?: string }>({
+      query: ({ testId, targetStatus }) => ({
+        url: `/admin/questions/test-archive/${testId}/restore`,
+        method: "POST",
+        body: targetStatus ? { targetStatus } : undefined,
+      }),
+      invalidatesTags: ["Questions"],
+    }),
+    permanentDeleteTest: builder.mutation<ApiEnvelope<unknown>, string>({
+      query: (testId) => ({
+        url: `/admin/questions/test-archive/${testId}/permanent`,
+        method: "DELETE",
+      }),
+      invalidatesTags: ["Questions"],
+    }),
     duplicateTest: builder.mutation<ApiEnvelope<TestArchiveItem>, DuplicateTestPayload>({
       query: ({ testId, ...body }) => ({
         url: `/admin/questions/test-archive/${testId}/duplicate`,
@@ -541,6 +695,31 @@ export const questionApi = baseApi.injectEndpoints({
     copyYearQuestions: builder.mutation<ApiEnvelope<unknown>, CopyYearPayload>({
       query: (body) => ({
         url: "/admin/questions/test-archive/copy-year",
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: ["Questions"],
+    }),
+
+    bulkArchiveTests: builder.mutation<ApiEnvelope<unknown>, { testIds: string[] }>({
+      query: (body) => ({
+        url: "/admin/questions/test-archive/bulk-archive",
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: ["Questions"],
+    }),
+    bulkRestoreTests: builder.mutation<ApiEnvelope<unknown>, { testIds: string[]; targetStatus?: string }>({
+      query: (body) => ({
+        url: "/admin/questions/test-archive/bulk-restore",
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: ["Questions"],
+    }),
+    bulkPermanentDeleteTests: builder.mutation<ApiEnvelope<unknown>, { testIds: string[] }>({
+      query: (body) => ({
+        url: "/admin/questions/test-archive/bulk-permanent-delete",
         method: "POST",
         body,
       }),
@@ -601,30 +780,88 @@ export const questionApi = baseApi.injectEndpoints({
       invalidatesTags: ["Questions"],
     }),
 
-    // 6. Subjects
-    getSubjects: builder.query<ApiEnvelope<SubjectItem[]>, SubjectListParams | void>({
+    // 6. Subjects Management
+    getSubjects: builder.query<SubjectListResponse, SubjectListParams | void>({
       query: (params) => `/admin/questions/subjects${buildSubjectQuery(params ?? undefined)}`,
       providesTags: ["Questions"],
     }),
     createSubject: builder.mutation<ApiEnvelope<SubjectItem>, CreateSubjectPayload>({
-      query: (payload) => ({
-        url: "/admin/questions/subjects/add",
+      query: (body) => ({
+        url: "/admin/questions/subjects",
         method: "POST",
-        body: payload,
+        body,
       }),
       invalidatesTags: ["Questions"],
     }),
     updateSubject: builder.mutation<ApiEnvelope<SubjectItem>, UpdateSubjectPayload>({
-      query: ({ id, ...body }) => ({
-        url: `/admin/questions/subjects/${id}`,
+      query: ({ subjectId, ...body }) => ({
+        url: `/admin/questions/subjects/${subjectId}`,
         method: "PATCH",
         body,
       }),
       invalidatesTags: ["Questions"],
     }),
-    deleteSubject: builder.mutation<ApiEnvelope<unknown>, string>({
-      query: (id) => ({
-        url: `/admin/questions/subjects/${id}`,
+    deleteSubject: builder.mutation<ApiEnvelope<void>, string>({
+      query: (subjectId) => ({
+        url: `/admin/questions/subjects/${subjectId}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: ["Questions"],
+    }),
+
+    // 7. Faculty Management
+    getFaculties: builder.query<FacultyListResponse, FacultyListParams | void>({
+      query: (params) => `/faculty${buildFacultyQuery(params ?? undefined)}`,
+      providesTags: ["Questions"],
+    }),
+    addFaculty: builder.mutation<ApiEnvelope<FacultyItem>, CreateFacultyPayload>({
+      query: (body) => ({
+        url: "/faculty/add",
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: ["Questions"],
+    }),
+    updateFaculty: builder.mutation<ApiEnvelope<FacultyItem>, UpdateFacultyPayload>({
+      query: ({ facultyId, ...body }) => ({
+        url: `/faculty/${facultyId}`,
+        method: "PATCH",
+        body,
+      }),
+      invalidatesTags: ["Questions"],
+    }),
+    deleteFaculty: builder.mutation<ApiEnvelope<void>, string>({
+      query: (facultyId) => ({
+        url: `/faculty/${facultyId}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: ["Questions"],
+    }),
+
+    // 8. Department Management
+    getDepartments: builder.query<DepartmentListResponse, DepartmentListParams | void>({
+      query: (params) => `/department${buildDepartmentQuery(params ?? undefined)}`,
+      providesTags: ["Questions"],
+    }),
+    addDepartment: builder.mutation<ApiEnvelope<DepartmentItem>, CreateDepartmentPayload & { facultyId: string }>({
+      query: ({ facultyId, ...body }) => ({
+        url: `/department/add/${facultyId}`,
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: ["Questions"],
+    }),
+    updateDepartment: builder.mutation<ApiEnvelope<DepartmentItem>, UpdateDepartmentPayload>({
+      query: ({ departmentId, ...body }) => ({
+        url: `/department/${departmentId}`,
+        method: "PATCH",
+        body,
+      }),
+      invalidatesTags: ["Questions"],
+    }),
+    deleteDepartment: builder.mutation<ApiEnvelope<void>, string>({
+      query: (departmentId) => ({
+        url: `/department/${departmentId}`,
         method: "DELETE",
       }),
       invalidatesTags: ["Questions"],
@@ -645,6 +882,11 @@ export const {
   useUpdateQuestionMutation,
   useUpdateQuestionStatusMutation,
   useDeleteQuestionMutation,
+  useRestoreQuestionMutation,
+  usePermanentDeleteQuestionMutation,
+  useBulkArchiveQuestionsMutation,
+  useBulkRestoreQuestionsMutation,
+  useBulkPermanentDeleteQuestionsMutation,
 
   // Test Archive
   useGetTestArchiveQuery,
@@ -656,6 +898,11 @@ export const {
   useDeleteTestMutation,
   useDuplicateTestMutation,
   useCopyYearQuestionsMutation,
+  useRestoreTestMutation,
+  usePermanentDeleteTestMutation,
+  useBulkArchiveTestsMutation,
+  useBulkRestoreTestsMutation,
+  useBulkPermanentDeleteTestsMutation,
 
   // Passages
   useGetPassagesQuery,
@@ -674,4 +921,14 @@ export const {
   useCreateSubjectMutation,
   useUpdateSubjectMutation,
   useDeleteSubjectMutation,
+  
+  useGetFacultiesQuery,
+  useAddFacultyMutation,
+  useUpdateFacultyMutation,
+  useDeleteFacultyMutation,
+
+  useGetDepartmentsQuery,
+  useAddDepartmentMutation,
+  useUpdateDepartmentMutation,
+  useDeleteDepartmentMutation,
 } = questionApi;

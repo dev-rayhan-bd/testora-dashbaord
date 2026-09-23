@@ -17,9 +17,13 @@ import {
   Loader2,
   Trash2,
   X,
+  CheckCircle,
+  BookOpen,
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import Image from "next/image";
+import { cn } from "@/lib/utils";
 
 interface CreateEditProps {
   open: boolean;
@@ -554,8 +558,9 @@ export function ViewTestQuestionsModal({ open, testId, onClose }: ViewTestProps)
   const { data, isLoading } = useGetSingleTestQuery(testId || "", { skip: !testId || !open });
   if (!open || !testId) return null;
 
-  const test = data?.data;
-  const questions = test?.questions ?? [];
+  const responseData = data?.data as any;
+  const test = responseData?.test || responseData;
+  const questions: any[] = responseData?.questions || test?.questions || [];
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#2d4056]/40 p-4 backdrop-blur-xs">
@@ -582,13 +587,101 @@ export function ViewTestQuestionsModal({ open, testId, onClose }: ViewTestProps)
             questions.map((q, idx) => (
               <div
                 key={q._id}
-                className="rounded-xl border border-[#e3edf7] bg-[#f8fbff] p-3 text-xs"
+                className="rounded-xl border border-[#e3edf7] bg-[#f8fbff] p-4 text-xs shadow-xs"
               >
-                <div className="flex items-center justify-between text-[#859cb0]">
-                  <span className="font-bold text-[#2f4256]">Question {idx + 1}</span>
-                  <span className="capitalize">{q.difficultyLevel || "medium"}</span>
+                <div className="flex flex-col gap-2 border-b border-[#e6edf5] pb-2 mb-3">
+                  <div className="flex items-center justify-between text-[#859cb0]">
+                    <span className="font-bold text-[#2f4256] text-sm">Question {idx + 1}</span>
+                    <div className="flex gap-1.5">
+                      <span className="rounded bg-[#edf4fe] px-1.5 py-0.5 border border-[#c6def8] text-[10px] font-bold uppercase text-[#2563eb]">{q.examType}</span>
+                      <span className="rounded bg-white px-1.5 py-0.5 border text-[10px] font-bold text-[#4f6d87]">{q.year}</span>
+                      <span className="rounded bg-white px-1.5 py-0.5 border text-[10px] font-bold capitalize text-[#4f6d87]">{q.difficultyLevel || "medium"}</span>
+                    </div>
+                  </div>
+                  
+                  {/* Additional Metadata Row */}
+                  <div className="flex flex-wrap items-center gap-2">
+                    {/* Subject */}
+                    {((q.subject as any)?.name || q.subjectName) && (
+                      <span className="inline-flex items-center rounded-md border border-[#dfd8f5] bg-[#f4f0fd] px-1.5 py-0.5 text-[10px] font-bold text-[#7c3aed]">
+                        {(q.subject as any)?.name || q.subjectName}
+                      </span>
+                    )}
+                    
+                    {/* Access */}
+                    {q.access && (
+                      <span className={cn(
+                        "rounded-md border px-1.5 py-0.5 text-[10px] font-bold capitalize",
+                        q.access === "premium" ? "border-amber-200 bg-amber-50 text-amber-600" : "border-emerald-200 bg-emerald-50 text-emerald-600"
+                      )}>
+                        {q.access}
+                      </span>
+                    )}
+
+                    {/* Passage Code */}
+                    {((q.passage as any)?.passageCode || q.passageCode) && (
+                      <span className="inline-flex items-center gap-1 rounded-md border border-[#dce7f2] bg-white px-1.5 py-0.5 text-[10px] font-bold text-[#4f6d87]">
+                        <BookOpen className="h-2.5 w-2.5" />
+                        {(q.passage as any)?.passageCode || q.passageCode}
+                      </span>
+                    )}
+                  </div>
                 </div>
-                <p className="mt-1 text-xs font-medium text-[#3f5f7a]">{q.questionText}</p>
+                <p className="mb-3 text-xs font-medium text-[#3f5f7a]">{q.questionText}</p>
+                
+                {q.questionImageUrl && (
+                  <div className="mb-3 overflow-hidden rounded-xl border border-[#dce7f2] bg-slate-50 p-2">
+                    <Image
+                      src={q.questionImageUrl}
+                      alt="Question Image"
+                      width={300}
+                      height={150}
+                      className="mx-auto max-h-40 object-contain"
+                    />
+                  </div>
+                )}
+                
+                <div className="space-y-1.5">
+                  {q.options?.map((opt: any, optIdx: number) => {
+                    const isCorrect = q.correctOptionIndex === optIdx;
+                    return (
+                      <div
+                        key={optIdx}
+                        className={cn(
+                          "flex items-center gap-3 rounded-lg border px-3 py-2 text-[11px]",
+                          isCorrect
+                            ? "border-[#8bd2a4] bg-[#edf8f2] font-semibold text-[#15803d]"
+                            : "border-[#e3edf7] bg-white text-[#4f6d87]"
+                        )}
+                      >
+                        <span
+                          className={cn(
+                            "flex h-5 w-5 shrink-0 items-center justify-center rounded text-[10px] font-bold",
+                            isCorrect ? "bg-[#15803d] text-white" : "bg-slate-200 text-slate-700"
+                          )}
+                        >
+                          {String.fromCharCode(65 + optIdx)}
+                        </span>
+                        <span className="flex-1">{opt.text}</span>
+                        {isCorrect && (
+                          <span className="inline-flex items-center gap-1 font-bold text-[#15803d]">
+                            <CheckCircle className="h-3 w-3" />
+                            Correct
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {q.explanation && (
+                  <div className="mt-3 rounded-lg border border-[#cfe1f5] bg-[#edf6fe] p-2.5">
+                    <p className="text-[10px] font-bold text-[#2368af] uppercase">Explanation</p>
+                    <p className="mt-1 text-[11px] text-[#35618b] leading-relaxed">
+                      {q.explanation}
+                    </p>
+                  </div>
+                )}
               </div>
             ))
           ) : (
@@ -625,10 +718,10 @@ export function DeleteTestModal({ open, test, onClose }: DeleteTestProps) {
   const handleConfirm = async () => {
     try {
       await deleteTest(test._id).unwrap();
-      toast.success("Test deleted successfully");
+      toast.success("Test archived successfully");
       onClose();
     } catch (err: unknown) {
-      const msg = (err as { data?: { message?: string } })?.data?.message || "Failed to delete test";
+      const msg = (err as { data?: { message?: string } })?.data?.message || "Failed to archive test";
       toast.error(msg);
     }
   };
@@ -642,8 +735,8 @@ export function DeleteTestModal({ open, test, onClose }: DeleteTestProps) {
               <Trash2 className="h-5 w-5" />
             </div>
             <div>
-              <h3 className="text-base font-bold text-slate-800">Delete Test</h3>
-              <p className="text-xs text-rose-600">This action cannot be undone.</p>
+              <h3 className="text-base font-bold text-slate-800">Archive Test</h3>
+              <p className="text-xs text-rose-600">This test will be moved to the archive.</p>
             </div>
           </div>
           <button type="button" onClick={onClose} className="rounded p-1 text-[#8ea1b5]">
@@ -673,7 +766,7 @@ export function DeleteTestModal({ open, test, onClose }: DeleteTestProps) {
             disabled={isLoading}
             className="inline-flex items-center gap-1.5 rounded-lg bg-rose-600 px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-rose-700"
           >
-            {isLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Confirm Delete"}
+            {isLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Confirm Archive"}
           </button>
         </div>
       </div>

@@ -45,6 +45,7 @@ const wrongItems = [
 export default function PassagesPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [status, setStatus] = useState<string>("active");
   const [page, setPage] = useState(1);
   const limit = 10;
 
@@ -60,6 +61,7 @@ export default function PassagesPage() {
     page,
     limit,
     searchTerm: debouncedSearch || undefined,
+    status: status !== "all" ? status : undefined,
   });
 
   const [toggleStatus] = useTogglePassageStatusMutation();
@@ -205,15 +207,46 @@ export default function PassagesPage() {
       </section>
 
       {/* Search Input */}
-      <section className="rounded-xl border border-[#dce7f2] bg-white p-3 shadow-xs">
-        <div className="relative">
-          <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-[#9ab0c3]" />
-          <input
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search passages by code, title, or content keywords..."
-            className="h-9 w-full rounded-lg border border-[#dce7f2] bg-[#f8fbff] pr-3 pl-9 text-xs text-[#2c445c] outline-none transition-colors focus:border-[#7ab1e8] focus:bg-white"
-          />
+      <section className="rounded-xl border border-[#dce7f2] bg-white p-3.5 shadow-xs space-y-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <label className="relative min-w-[220px] flex-1">
+            <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-[#9ab0c3]" />
+            <input
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search passages by code, title, or content keywords..."
+              className="h-9 w-full rounded-lg border border-[#dce7f2] bg-[#f8fbff] pr-3 pl-9 text-xs text-[#2c445c] outline-none transition-colors focus:border-[#7ab1e8] focus:bg-white"
+            />
+          </label>
+
+          <select
+            value={status}
+            onChange={(e) => {
+              setStatus(e.target.value);
+              setPage(1);
+            }}
+            className="h-9 rounded-lg border border-[#dce7f2] bg-[#f8fbff] px-2.5 text-xs text-[#48637e] outline-none"
+          >
+            <option value="active">Active Passages</option>
+            <option value="inactive">Inactive Passages</option>
+            <option value="all">All Passages</option>
+          </select>
+
+          {(debouncedSearch !== "" || status !== "active") && (
+            <button
+              type="button"
+              onClick={() => {
+                setSearchTerm("");
+                setDebouncedSearch("");
+                setStatus("active");
+                setPage(1);
+              }}
+              className="inline-flex h-9 items-center gap-1 rounded-lg border border-rose-200 bg-rose-50 px-2.5 text-xs font-semibold text-rose-600 hover:bg-rose-100 transition-colors"
+            >
+              <X className="h-3.5 w-3.5" />
+              Reset
+            </button>
+          )}
         </div>
       </section>
 
