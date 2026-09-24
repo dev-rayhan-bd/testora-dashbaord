@@ -10,6 +10,7 @@ import {
   Package,
   Settings,
   ShoppingBag,
+  Tags,
   Users,
   X,
 } from "lucide-react";
@@ -22,6 +23,7 @@ const navItems = [
   { href: "/premium-users", label: "Premium Users", icon: Crown },
   { href: "/questions", label: "Question & Test", icon: CircleHelp },
   { href: "/blog", label: "Blog", icon: FileText },
+  { href: "/categories", label: "Categories", icon: Tags },
   { href: "/marketplace", label: "Marketplace", icon: ShoppingBag },
   { href: "/orders", label: "Order", icon: Package },
 ];

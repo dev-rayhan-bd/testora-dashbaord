@@ -5,17 +5,24 @@ import { ImageIcon, Upload, X } from "lucide-react";
 import { useRef } from "react";
 
 type Props = {
-  value: string | null;
-  onChange: (url: string | null) => void;
+  previewUrl: string | null;
+  onChange: (file: File | null, previewUrl: string | null) => void;
 };
 
-export default function ThumbnailUploadSection({ value, onChange }: Props) {
+export default function ThumbnailUploadSection({ previewUrl, onChange }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleFile = (file: File | null) => {
     if (!file) return;
     const url = URL.createObjectURL(file);
-    onChange(url);
+    onChange(file, url);
+  };
+
+  const clearFile = () => {
+    onChange(null, null);
+    if (inputRef.current) {
+      inputRef.current.value = "";
+    }
   };
 
   return (
@@ -24,12 +31,12 @@ export default function ThumbnailUploadSection({ value, onChange }: Props) {
         Thumbnail Image
       </h3>
 
-      {value ? (
+      {previewUrl ? (
         <div className="relative overflow-hidden rounded-lg border border-[#dce7f2]">
-          <img src={value} alt="thumbnail" className="h-56 w-full object-cover" />
+          <img src={previewUrl} alt="thumbnail" className="h-56 w-full object-cover" />
           <button
             type="button"
-            onClick={() => onChange(null)}
+            onClick={clearFile}
             className="absolute top-2 right-2 flex h-6 w-6 items-center justify-center rounded-full bg-[#fdeeee] text-[#db6f6f] hover:bg-[#f4d7d7]"
           >
             <X className="h-3.5 w-3.5" />
@@ -57,7 +64,7 @@ export default function ThumbnailUploadSection({ value, onChange }: Props) {
         onChange={(e) => handleFile(e.target.files?.[0] ?? null)}
       />
 
-      {!value && (
+      {!previewUrl && (
         <button
           type="button"
           onClick={() => inputRef.current?.click()}

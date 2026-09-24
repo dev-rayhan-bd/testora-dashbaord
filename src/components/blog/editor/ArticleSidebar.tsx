@@ -1,10 +1,9 @@
-import { BLOG_CATEGORIES, type ArticleStatus } from "@/lib/blog-data";
+import { BLOG_CATEGORY, BLOG_STATUS } from "../BlogBadges";
 import { cn } from "@/lib/utils";
 import { Clock, Eye, FileEdit, Globe, X } from "lucide-react";
-import Link from "next/link";
 
 type SidebarState = {
-  status: ArticleStatus;
+  status: string;
   category: string;
   author: string;
   publishDate: string;
@@ -17,11 +16,9 @@ type Props = {
   onPublish: () => void;
 };
 
-const STATUS_OPTIONS: { value: ArticleStatus; label: string; visibility: string; dotColor: string }[] = [
-  { value: "Draft",     label: "Draft",     visibility: "Private", dotColor: "bg-[#c48a2e]" },
-  { value: "Published", label: "Published", visibility: "Visible", dotColor: "bg-[#3ea666]" },
-  { value: "Hidden",    label: "Hidden",    visibility: "",        dotColor: "bg-[#d97a2a]" },
-  { value: "Archived",  label: "Archived",  visibility: "",        dotColor: "bg-[#90a3b6]" },
+const STATUS_OPTIONS = [
+  { value: BLOG_STATUS.DRAFT,     label: "Draft",     visibility: "Private", dotColor: "bg-[#c48a2e]" },
+  { value: BLOG_STATUS.PUBLISHED, label: "Published", visibility: "Visible", dotColor: "bg-[#3ea666]" },
 ];
 
 const inputClass =
@@ -79,7 +76,7 @@ export default function ArticleSidebar({ data, onChange, wordCount, onPublish }:
           className={inputClass}
         >
           <option value="">Select category</option>
-          {BLOG_CATEGORIES.map((c) => (
+          {Object.values(BLOG_CATEGORY).map((c) => (
             <option key={c} value={c}>{c}</option>
           ))}
         </select>
@@ -98,63 +95,16 @@ export default function ArticleSidebar({ data, onChange, wordCount, onPublish }:
         />
       </div>
 
-      {/* Publish Date */}
-      <div className="rounded-lg border border-[#dce7f2] bg-white p-4">
-        <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-[#90a3b6]">
-          Publish Date
-        </p>
-        <input
-          type="date"
-          value={data.publishDate}
-          onChange={(e) => onChange("publishDate", e.target.value)}
-          className={inputClass}
-        />
-      </div>
-
-      {/* Reading time */}
-      <div className="rounded-lg border border-[#dce7f2] bg-white p-4">
-        <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-[#90a3b6]">
-          Reading Time
-        </p>
-        <div className="flex items-center gap-1.5 text-xs text-[#3f5f7a]">
-          <Clock className="h-3.5 w-3.5 text-[#4a93d9]" />
-          <span className="font-medium">{mins} min read</span>
-          <span className="text-[#90a3b6]">· {wordCount} w({wordCount})</span>
+      {/* Details */}
+      <div className="rounded-lg border border-[#dce7f2] bg-[#f8fbff] p-4 text-xs text-[#587189]">
+        <div className="mb-2 flex items-center justify-between">
+          <span className="flex items-center gap-1.5"><Clock className="h-3.5 w-3.5" /> Read Time</span>
+          <span className="font-medium text-[#3f5f7a]">{mins} min read</span>
         </div>
-        <p className="mt-1 text-[10px] text-[#90a3b6]">Auto-calculated from content</p>
-      </div>
-
-      {/* Action buttons */}
-      <div className="rounded-lg border border-[#dce7f2] bg-white p-4 space-y-2">
-        <button
-          type="button"
-          onClick={onPublish}
-          className="flex w-full items-center justify-center gap-1.5 rounded-md bg-[#2f86d8] py-2 text-sm font-semibold text-white hover:bg-[#2a78c6]"
-        >
-          <Globe className="h-3.5 w-3.5" />
-          Publish Article
-        </button>
-        <button
-          type="button"
-          className="flex w-full items-center justify-center gap-1.5 rounded-md border border-[#dce7f2] py-2 text-sm text-[#587189] hover:bg-[#f3f7fb]"
-        >
-          <FileEdit className="h-3.5 w-3.5" />
-          Save as Draft
-        </button>
-        <button
-          type="button"
-          className="flex w-full items-center justify-center gap-1.5 rounded-md border border-[#dce7f2] py-2 text-sm text-[#587189] hover:bg-[#f3f7fb]"
-        >
-          <Eye className="h-3.5 w-3.5" />
-          Preview
-        </button>
-        <Link
-          href="/blog"
-          className="flex w-full items-center justify-center gap-1.5 rounded-md border border-[#dce7f2] py-2 text-sm text-[#587189] hover:bg-[#f3f7fb]"
-        >
-          <X className="h-3.5 w-3.5" />
-          Cancel
-        </Link>
+        <div className="flex items-center justify-between">
+          <span className="flex items-center gap-1.5"><FileEdit className="h-3.5 w-3.5" /> Word Count</span>
+          <span className="font-medium text-[#3f5f7a]">{wordCount} words</span>
+        </div>
       </div>
     </div>
   );

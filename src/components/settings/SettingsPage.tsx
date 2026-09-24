@@ -1,4 +1,3 @@
-/* eslint-disable @next/next/no-img-element */
 "use client";
 
 import { cn } from "@/lib/utils";
@@ -11,7 +10,8 @@ import {
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { setCredentials } from "@/store/slices/authSlice";
 import { Camera, Eye, EyeOff, Loader2 } from "lucide-react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 
 type Tab = "edit" | "password";
 
@@ -54,126 +54,128 @@ function PasswordInput({
 
 export default function SettingsPage() {
   const dispatch = useAppDispatch();
-  const user = useAppSelector((s) => s.auth.user);
   const token = useAppSelector((s) => s.auth.token);
   const refreshToken = useAppSelector((s) => s.auth.refreshToken);
+  const reduxUser = useAppSelector((s) => s.auth.user);
 
   const [activeTab, setActiveTab] = useState<Tab>("edit");
 
-  /* profile */
-  const [fullName, setFullName] = useState(user?.name ?? "");
-  const fileRef = useRef<HTMLInputElement>(null);
-  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
-  const [avatarFile, setAvatarFile] = useState<File | null>(null);
-
-  /* password */
-  const [oldPassword, setOldPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-
-  /* feedback */
-  const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
-
-  /* RTK mutations */
+  /* RTK Queries & Mutations */
   const [updateProfile, { isLoading: updatingProfile }] = useUpdateProfileMutation();
   const [updateProfileImage, { isLoading: updatingImage }] = useUpdateProfileImageMutation();
   const [changePassword, { isLoading: changingPw }] = useChangePasswordMutation();
 
-  const showMsg = (type: "success" | "error", text: string) => {
-    setMessage({ type, text });
-    setTimeout(() => setMessage(null), 4000);
-  };
+  /* profile state */
+  const [fullName, setFullName] = useState(reduxUser?.name || "");
+  const fileRef = useRef<HTMLInputElement>(null);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  /* password state */
+  const [oldPassword, setOldPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    setAvatarFile(file);
-    const reader = new FileReader();
-    reader.onload = (ev) => setAvatarPreview(ev.target?.result as string);
-    reader.readAsDataURL(file);
+
+    try {
+      const fd = new FormData();
+      fd.append("profile_image", file);
+      const imgRes = await updateProfileImage(fd).unwrap();
+      const u = imgRes.data;
+      
+      if (u) {
+        dispatch(
+          setCredentials({
+            user: {
+              id: u.id ?? reduxUser?.id ?? "",
+              name: u.fullName ?? reduxUser?.name ?? "",
+              email: u.email ?? reduxUser?.email ?? "",
+              role: u.role ?? reduxUser?.role ?? "",
+              avatar: u.profileImage ?? u.avatar ?? reduxUser?.avatar,
+            },
+            token: token ?? "",
+            refreshToken,
+          })
+        );
+        toast.success("Profile image updated successfully");
+      }
+    } catch (err) {
+      toast.error(getErrorMessage(err, "Failed to upload profile image"));
+    }
+    
+    // Reset file input
+    if (fileRef.current) {
+      fileRef.current.value = "";
+    }
   };
 
   const handleSaveProfile = async () => {
-    try {
-      if (avatarFile) {
-        const fd = new FormData();
-        fd.append("profile_image", avatarFile);
-        const imgRes = await updateProfileImage(fd).unwrap();
-        const u = imgRes.data;
-        if (u && user) {
-          dispatch(
-            setCredentials({
-              user: {
-                id: u.id ?? user.id,
-                name: u.fullName ?? user.name,
-                email: u.email ?? user.email,
-                role: u.role ?? user.role,
-                avatar: u.avatar ?? user.avatar,
-              },
-              token: token ?? "",
-              refreshToken,
-            })
-          );
-        }
-        setAvatarFile(null);
-        setAvatarPreview(null);
-      }
-
-      if (fullName.trim()) {
-        const res = await updateProfile({ fullName: fullName.trim() }).unwrap();
-        const u = res.data;
-        if (u && user) {
-          dispatch(
-            setCredentials({
-              user: {
-                id: u.id ?? user.id,
-                name: u.fullName ?? user.name,
-                email: u.email ?? user.email,
-                role: u.role ?? user.role,
-                avatar: u.avatar ?? user.avatar,
-              },
-              token: token ?? "",
-              refreshToken,
-            })
-          );
-          setFullName(u.fullName ?? fullName);
-        }
-      }
-
-      showMsg("success", "Profile updated successfully.");
-    } catch (err) {
-      showMsg("error", getErrorMessage(err, "Failed to update profile."));
+    if (!fullName.trim()) {
+      toast.error("Full name cannot be empty");
+      return;
     }
+    
+    try {
+      const res = await updateProfile({ fullName: fullName.trim() }).unwrap();
+      const u = res.data;
+      
+      if (u) {
+        dispatch(
+          setCredentials({
+            user: {
+              id: u.id ?? reduxUser?.id ?? "",
+              name: u.fullName ?? reduxUser?.name ?? "",
+              email: u.email ?? reduxUser?.email ?? "",
+              role: u.role ?? reduxUser?.role ?? "",
+              avatar: u.profileImage ?? u.avatar ?? reduxUser?.avatar,
+            },
+            token: token ?? "",
+            refreshToken,
+          })
+        );
+      }
+
+      toast.success("Profile updated successfully");
+    } catch (err) {
+      toast.error(getErrorMessage(err, "Failed to update profile"));
+    }
+  };
+
+  const validatePassword = (pw: string) => {
+    const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{6,}$/;
+    return regex.test(pw);
   };
 
   const handleChangePassword = async () => {
     if (!oldPassword || !newPassword || !confirmPassword) {
-      showMsg("error", "Please fill in all password fields.");
+      toast.error("Please fill in all password fields.");
       return;
     }
     if (newPassword !== confirmPassword) {
-      showMsg("error", "New passwords do not match.");
+      toast.error("New passwords do not match.");
       return;
     }
-    if (newPassword.length < 6) {
-      showMsg("error", "New password must be at least 6 characters.");
+    if (!validatePassword(newPassword)) {
+      toast.error("New password must be at least 6 characters, contain 1 uppercase, 1 lowercase, 1 number, and 1 special character.");
       return;
     }
+    
     try {
       await changePassword({ oldPassword, newPassword }).unwrap();
-      showMsg("success", "Password changed successfully.");
+      toast.success("Password changed successfully.");
       setOldPassword("");
       setNewPassword("");
       setConfirmPassword("");
     } catch (err) {
-      showMsg("error", getErrorMessage(err, "Failed to change password."));
+      toast.error(getErrorMessage(err, "Failed to change password."));
     }
   };
 
-  const displayAvatar = avatarPreview ?? user?.avatar ?? null;
-  const displayName = user?.name ?? "Admin";
-  const displayRole = user?.role ?? "Administrator";
-  const isBusy = updatingProfile || updatingImage || changingPw;
+  const displayAvatar = reduxUser?.avatar;
+  const displayName = reduxUser?.name ?? "Admin";
+  const displayRole = reduxUser?.role ?? "Administrator";
+  const isBusy = updatingProfile || changingPw;
 
   return (
     <div className="rounded-lg border border-[#dce7f2] bg-[#e5e6e8] p-4 md:p-10">
@@ -187,20 +189,21 @@ export default function SettingsPage() {
                 <img
                   src={displayAvatar}
                   alt={displayName}
-                  className="h-full w-full rounded-full border-2 border-[#ecf3fb] object-cover"
+                  className="h-full w-full rounded-full border-2 border-[#ecf3fb] object-cover bg-white"
                 />
               ) : (
-                <div className="flex h-full w-full items-center justify-center rounded-full border-2 border-[#ecf3fb] bg-white/20 text-2xl font-bold text-white">
-                  {displayName.charAt(0).toUpperCase()}
+                <div className="flex h-full w-full items-center justify-center rounded-full border-2 border-[#ecf3fb] bg-white/20 text-2xl font-bold text-white uppercase">
+                  {displayName.charAt(0)}
                 </div>
               )}
               <button
                 type="button"
                 onClick={() => fileRef.current?.click()}
-                className="absolute right-0 bottom-1 flex h-6 w-6 items-center justify-center rounded-full border border-[#9fc4ea] bg-[#e9f3fd] text-[#2f86d8] transition-colors hover:bg-white"
+                disabled={updatingImage}
+                className="absolute right-0 bottom-1 flex h-7 w-7 items-center justify-center rounded-full border border-[#9fc4ea] bg-[#e9f3fd] text-[#2f86d8] shadow-sm transition-colors hover:bg-white disabled:opacity-50 cursor-pointer"
                 aria-label="Change profile photo"
               >
-                <Camera className="h-3.5 w-3.5" />
+                {updatingImage ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Camera className="h-3.5 w-3.5" />}
               </button>
               <input
                 ref={fileRef}
@@ -212,26 +215,11 @@ export default function SettingsPage() {
             </div>
 
             <div>
-              <p className="text-4xl leading-tight font-semibold text-white">{displayName}</p>
-              <p className="mt-1 text-lg leading-none text-[#deecfa]">{displayRole}</p>
-              {avatarFile && <p className="mt-1.5 text-xs text-[#c4e0f7]">📷 {avatarFile.name}</p>}
+              <p className="text-4xl leading-tight font-semibold text-white capitalize">{displayName}</p>
+              <p className="mt-1 text-lg leading-none text-[#deecfa] capitalize">{displayRole}</p>
             </div>
           </div>
         </div>
-
-        {/* Feedback message */}
-        {message && (
-          <div
-            className={cn(
-              "mt-4 rounded-md border px-4 py-2.5 text-sm font-medium",
-              message.type === "success"
-                ? "border-green-200 bg-green-50 text-green-700"
-                : "border-red-200 bg-red-50 text-red-700"
-            )}
-          >
-            {message.text}
-          </div>
-        )}
 
         {/* Tabs */}
         <div className="mx-auto mt-8 max-w-xl">
@@ -291,9 +279,9 @@ export default function SettingsPage() {
               <button
                 type="submit"
                 disabled={isBusy}
-                className="flex h-11 w-full items-center justify-center gap-2 rounded-md bg-linear-to-r from-[#2360A5] to-[#4584CA] text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+                className="flex h-11 w-full items-center justify-center gap-2 rounded-md bg-linear-to-r from-[#2360A5] to-[#4584CA] text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60 mt-6"
               >
-                {(updatingProfile || updatingImage) && <Loader2 className="h-4 w-4 animate-spin" />}
+                {updatingProfile && <Loader2 className="h-4 w-4 animate-spin" />}
                 Save &amp; Change
               </button>
             </form>
@@ -306,7 +294,7 @@ export default function SettingsPage() {
               }}
             >
               <div className="text-center">
-                <h2 className="text-2xl font-semibold text-[#2f3f52]">Change Password</h2>
+                <h2 className="text-2xl font-semibold text-[#2f3f52]">Change Your Password</h2>
               </div>
 
               <div className="space-y-1">
@@ -348,10 +336,10 @@ export default function SettingsPage() {
               <button
                 type="submit"
                 disabled={changingPw}
-                className="flex h-11 w-full items-center justify-center gap-2 rounded-md bg-linear-to-r from-[#2360A5] to-[#4584CA] text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+                className="flex h-11 w-full items-center justify-center gap-2 rounded-md bg-linear-to-r from-[#2360A5] to-[#4584CA] text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60 mt-6"
               >
                 {changingPw && <Loader2 className="h-4 w-4 animate-spin" />}
-                Save &amp; Change
+                Update Password
               </button>
             </form>
           )}

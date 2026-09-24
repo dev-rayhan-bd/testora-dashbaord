@@ -1,22 +1,24 @@
 "use client";
 
-import { blogStats, articles as initialArticles, type ArticleStatus } from "@/lib/blog-data";
+import { useMemo, useState } from "react";
 import { cn } from "@/lib/utils";
 import {
   Archive,
   BookOpen,
   ChevronDown,
-  Eye,
-  FileText,
+  ChevronLeft,
+  ChevronRight,
+  Loader2,
   Plus,
   Search,
   Tag,
   TrendingUp,
 } from "lucide-react";
 import Link from "next/link";
-import { useMemo, useState } from "react";
 import ArticleTableRow from "./ArticleTableRow";
-import ManageCategoriesModal from "./ManageCategoriesModal";
+import { useDeleteBlogMutation, useGetBlogsQuery } from "@/store/apis/blogApi";
+import { toast } from "sonner";
+import { ConfirmDeleteModal } from "../questions/question-bank/ConfirmDeleteModal";
 
 // ─── Stat card ────────────────────────────────────────────────────────────────
 
@@ -49,33 +51,52 @@ function StatCard({
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function BlogManagementPage() {
-  const [articleList, setArticleList] = useState(initialArticles);
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("All");
-  const [showCategoriesModal, setShowCategoriesModal] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [page, setPage] = useState(1);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [blogToDelete, setBlogToDelete] = useState<string | null>(null);
 
-  const handleStatusChange = (id: string, status: ArticleStatus) => {
-    setArticleList((prev) => prev.map((a) => (a.id === id ? { ...a, status } : a)));
+  // Debounce search
+  useMemo(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(searchTerm.trim());
+      setPage(1);
+    }, 500);
+    return () => clearTimeout(handler);
+  }, [searchTerm]);
+
+  const { data, isLoading, isFetching } = useGetBlogsQuery({
+    page,
+    limit: 10,
+    searchTerm: debouncedSearch || undefined,
+    status: statusFilter !== "all" ? statusFilter : undefined,
+    category: categoryFilter !== "all" ? categoryFilter : undefined,
+  });
+
+  const [deleteBlog, { isLoading: isDeleting }] = useDeleteBlogMutation();
+
+  const articles = data?.data?.data || [];
+  const meta = data?.data?.meta || { total: 0, page: 1, limit: 10, totalPages: 1 };
+
+  const handleDeleteConfirm = async () => {
+    if (!blogToDelete) return;
+    try {
+      await deleteBlog(blogToDelete).unwrap();
+      toast.success("Blog deleted successfully!");
+      setDeleteModalOpen(false);
+      setBlogToDelete(null);
+    } catch (err: any) {
+      toast.error(err?.data?.message || "Failed to delete blog.");
+    }
   };
 
-  const handleDelete = (id: string) => {
-    setArticleList((prev) => prev.filter((a) => a.id !== id));
+  const openDeleteModal = (id: string) => {
+    setBlogToDelete(id);
+    setDeleteModalOpen(true);
   };
-
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return articleList.filter((a) => {
-      const matchSearch =
-        !q || a.title.toLowerCase().includes(q) || a.slug.toLowerCase().includes(q);
-      const matchStatus = statusFilter === "All" || a.status === statusFilter;
-      return matchSearch && matchStatus;
-    });
-  }, [articleList, search, statusFilter]);
-
-  const publishedCount = articleList.filter((a) => a.status === "Published").length;
-  const draftCount = articleList.filter((a) => a.status === "Draft").length;
-  const archivedCount = articleList.filter((a) => a.status === "Archived").length;
-  const hiddenCount = articleList.filter((a) => a.status === "Hidden").length;
 
   return (
     <div className="space-y-3">
@@ -88,185 +109,155 @@ export default function BlogManagementPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setShowCategoriesModal(true)}
-            className="inline-flex h-9 items-center gap-1.5 rounded-md border border-[#dce7f2] bg-white px-3 text-xs font-medium text-[#587189] hover:bg-[#f3f7fb]"
-          >
-            <Tag className="h-3.5 w-3.5" />
-            Manage Categories
-          </button>
           <Link
             href="/blog/new"
-            className="inline-flex h-9 items-center gap-1.5 rounded-md bg-[#2f86d8] px-3 text-xs font-medium text-white hover:bg-[#2a78c6]"
+            className="inline-flex h-9 items-center gap-1.5 rounded-md bg-[#2f86d8] px-3.5 text-xs font-semibold text-white shadow-sm hover:bg-[#2a78c6]"
           >
-            <Plus className="h-3.5 w-3.5" />
-            Create New Article
+            <Plus className="h-4 w-4" />
+            New Article
           </Link>
         </div>
       </div>
 
-      {/* ── Stats cards ─────────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <StatCard
-          icon={FileText}
-          value={articleList.length}
-          label="Total Articles"
-          iconColor="text-[#3f5f7a]"
-          iconBg="bg-[#edf0fb]"
-        />
-        <StatCard
-          icon={Eye}
-          value={publishedCount}
-          label="Published"
-          iconColor="text-[#3ea666]"
-          iconBg="bg-[#e9f8ef]"
-        />
-        <StatCard
-          icon={BookOpen}
-          value={draftCount}
-          label="Drafts"
-          iconColor="text-[#c48a2e]"
-          iconBg="bg-[#fff3da]"
-        />
-        <StatCard
-          icon={Archive}
-          value={archivedCount}
-          label="Archived"
-          iconColor="text-[#6d839a]"
-          iconBg="bg-[#f2f6fb]"
-        />
-      </div>
+      {/* ── Search & Filters ────────────────────────────────────────────────── */}
+      <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center rounded-xl border border-[#dce7f2] bg-white p-3 shadow-xs">
+        <div className="relative w-full max-w-sm">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#9ab0c3]" />
+          <input
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Search articles by title..."
+            className="h-9 w-full rounded-md border border-[#dce7f2] bg-[#f8fbff] pl-9 pr-4 text-xs text-[#3f5f7a] outline-none transition-colors focus:border-[#b4cfe8] focus:bg-white"
+          />
+        </div>
 
-      {/* ── Total views bar ──────────────────────────────────────────────────── */}
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-[#c8ddf2] bg-[#eaf4fd] px-4 py-3">
         <div className="flex items-center gap-2">
-          <TrendingUp className="h-4 w-4 text-[#2f86d8]" />
-          <div>
-            <p className="text-sm font-bold text-[#2f86d8]">
-              {blogStats.totalViews.toLocaleString()} Total Views
-            </p>
-            <p className="text-xs text-[#5a8fc4]">Across all published articles</p>
+          <div className="relative">
+            <select
+              value={categoryFilter}
+              onChange={(e) => {
+                setCategoryFilter(e.target.value);
+                setPage(1);
+              }}
+              className="h-9 appearance-none rounded-md border border-[#dce7f2] bg-white pl-3 pr-8 text-xs font-medium text-[#587189] outline-none hover:bg-[#f8fbff]"
+            >
+              <option value="all">All Categories</option>
+              <option value="Entrance Exams">Entrance Exams</option>
+              <option value="Matura">Matura</option>
+              <option value="Semi Matura">Semi Matura</option>
+              <option value="Platform Updates">Platform Updates</option>
+              <option value="University Preparations">University Preparations</option>
+              <option value="Study Tips">Study Tips</option>
+              <option value="Quiz Tips">Quiz Tips</option>
+            </select>
+            <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#9ab0c3]" />
+          </div>
+
+          <div className="relative">
+            <select
+              value={statusFilter}
+              onChange={(e) => {
+                setStatusFilter(e.target.value);
+                setPage(1);
+              }}
+              className="h-9 appearance-none rounded-md border border-[#dce7f2] bg-white pl-3 pr-8 text-xs font-medium text-[#587189] outline-none hover:bg-[#f8fbff]"
+            >
+              <option value="all">All Status</option>
+              <option value="published">Published</option>
+              <option value="draft">Draft</option>
+            </select>
+            <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#9ab0c3]" />
           </div>
         </div>
-        <div className="flex flex-wrap items-center gap-4">
-          {blogStats.categoryViews.map((cv) => (
-            <div key={cv.label} className="text-center">
-              <p className="text-sm font-bold text-[#3f5f7a]">{cv.views.toLocaleString()}</p>
-              <p className="text-[10px] text-[#7e95ab]">{cv.label}</p>
-            </div>
-          ))}
-        </div>
       </div>
 
-      {/* ── Search + filter ──────────────────────────────────────────────────── */}
-      <div className="flex flex-wrap items-center gap-2 rounded-lg border border-[#dce7f2] bg-white p-3">
-        <label className="relative min-w-56 flex-1">
-          <Search className="pointer-events-none absolute top-1/2 left-2.5 h-4 w-4 -translate-y-1/2 text-[#9ab0c3]" />
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search articles by title..."
-            className="h-9 w-full rounded-md border border-[#dce7f2] bg-[#f8fbff] pr-3 pl-8 text-sm text-[#3f5f7a] outline-none placeholder:text-[#9ab0c3]"
-          />
-        </label>
-
-        {/* Status filter */}
-        <div className="relative">
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="h-9 appearance-none rounded-md border border-[#dce7f2] bg-[#f8fbff] py-0 pr-8 pl-3 text-sm text-[#587189] outline-none"
-          >
-            {["All", "Published", "Draft", "Hidden", "Archived"].map((s) => (
-              <option key={s} value={s}>
-                {s}
-              </option>
-            ))}
-          </select>
-          <ChevronDown className="pointer-events-none absolute top-1/2 right-2 h-3.5 w-3.5 -translate-y-1/2 text-[#9ab0c3]" />
-        </div>
-
-        <div className="relative">
-          <select className="h-9 appearance-none rounded-md border border-[#dce7f2] bg-[#f8fbff] py-0 pr-8 pl-3 text-sm text-[#587189] outline-none">
-            <option value="">All Categories</option>
-          </select>
-          <ChevronDown className="pointer-events-none absolute top-1/2 right-2 h-3.5 w-3.5 -translate-y-1/2 text-[#9ab0c3]" />
-        </div>
-
-        <span className="ml-auto text-xs text-[#90a3b6]">
-          {filtered.length} / {articleList.length} articles
-        </span>
-      </div>
-
-      {/* ── Articles table ───────────────────────────────────────────────────── */}
-      <div className="overflow-hidden rounded-lg border border-[#dce7f2] bg-white">
+      {/* ── Table ───────────────────────────────────────────────────────────── */}
+      <div className="overflow-hidden rounded-xl border border-[#dce7f2] bg-white shadow-xs">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-205 text-left">
-            <thead className="bg-[#f3f7fb] text-[11px] font-medium tracking-wide text-[#6f859b] uppercase">
+          <table className="w-full text-left">
+            <thead className="border-b border-[#e5eff8] bg-[#f5f9fd] text-[11px] font-semibold uppercase tracking-wider text-[#637d96]">
               <tr>
-                <th className="px-3 py-2.5">Thumb</th>
-                <th className="px-3 py-2.5">
-                  <span className="flex items-center gap-1">
-                    Title
-                    <ChevronDown className="h-3 w-3" />
-                  </span>
-                </th>
-                <th className="px-3 py-2.5">Category</th>
-                <th className="px-3 py-2.5">Status</th>
-                <th className="px-3 py-2.5">
-                  <span className="flex items-center gap-1">
-                    Publish Date
-                    <ChevronDown className="h-3 w-3" />
-                  </span>
-                </th>
-                <th className="px-3 py-2.5">
-                  <span className="flex items-center gap-1">
-                    Views
-                    <ChevronDown className="h-3 w-3" />
-                  </span>
-                </th>
-                <th className="px-3 py-2.5">Actions</th>
+                <th className="px-3 py-3">Thumbnail</th>
+                <th className="px-3 py-3">Title</th>
+                <th className="px-3 py-3">Category</th>
+                <th className="px-3 py-3">Status</th>
+                <th className="px-3 py-3">Published</th>
+                <th className="px-3 py-3">Views</th>
+                <th className="px-3 py-3">Actions</th>
               </tr>
             </thead>
-            <tbody>
-              {filtered.map((article) => (
-                <ArticleTableRow
-                  key={article.id}
-                  article={article}
-                  onStatusChange={handleStatusChange}
-                  onDelete={handleDelete}
-                />
-              ))}
-              {filtered.length === 0 && (
+            <tbody className="divide-y divide-[#ecf2f8]">
+              {isLoading || isFetching ? (
                 <tr>
-                  <td colSpan={7} className="px-4 py-10 text-center text-sm text-[#90a3b6]">
-                    No articles match your search.
+                  <td colSpan={7} className="px-3 py-16 text-center text-sm text-[#8fa3b7]">
+                    <div className="flex flex-col items-center justify-center gap-2">
+                      <Loader2 className="h-6 w-6 animate-spin text-[#2f86d8]" />
+                      <p>Loading blogs...</p>
+                    </div>
+                  </td>
+                </tr>
+              ) : articles.length > 0 ? (
+                articles.map((article) => (
+                  <ArticleTableRow
+                    key={article._id}
+                    article={article}
+                    onDelete={openDeleteModal}
+                  />
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={7} className="px-3 py-12 text-center text-sm text-[#8fa3b7]">
+                    No articles found matching your criteria.
                   </td>
                 </tr>
               )}
             </tbody>
           </table>
         </div>
-
-        {/* Footer */}
-        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-[#ecf2f8] px-4 py-2.5 text-xs text-[#90a3b6]">
-          <span>
-            Showing {filtered.length} of {articleList.length} articles
-          </span>
-          <span className="flex flex-wrap gap-3">
-            <span className="text-[#3ea666]">{publishedCount} Published</span>
-            <span className="text-[#c48a2e]">{draftCount} Draft</span>
-            <span className="text-[#d97a2a]">{hiddenCount} Hidden</span>
-            <span className="text-[#6d839a]">{archivedCount} Archived</span>
-          </span>
-        </div>
       </div>
 
-      <ManageCategoriesModal
-        open={showCategoriesModal}
-        articles={articleList}
-        onClose={() => setShowCategoriesModal(false)}
+      {/* Pagination Controls */}
+      {!isLoading && articles.length > 0 && (
+        <div className="flex flex-col items-center justify-between gap-3 px-1 py-2 sm:flex-row">
+          <p className="text-xs text-[#6e859b]">
+            Showing <span className="font-semibold text-[#273d52]">{articles.length}</span> of{" "}
+            <span className="font-semibold text-[#273d52]">{meta.total}</span> blogs
+          </p>
+
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              disabled={page <= 1}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              className="inline-flex h-8 items-center gap-1 rounded-lg border border-[#dce7f2] bg-white px-2.5 text-xs font-semibold text-[#48637e] shadow-xs hover:bg-[#f8fbff] disabled:opacity-40"
+            >
+              <ChevronLeft className="h-3.5 w-3.5" />
+              Previous
+            </button>
+            <div className="flex h-8 items-center justify-center rounded-lg border border-[#dce7f2] bg-[#f8fbff] px-3 text-xs font-bold text-[#2f86d8] shadow-xs">
+              Page {page} of {meta.totalPages}
+            </div>
+            <button
+              type="button"
+              disabled={page >= meta.totalPages}
+              onClick={() => setPage((p) => Math.min(meta.totalPages, p + 1))}
+              className="inline-flex h-8 items-center gap-1 rounded-lg border border-[#dce7f2] bg-white px-2.5 text-xs font-semibold text-[#48637e] shadow-xs hover:bg-[#f8fbff] disabled:opacity-40"
+            >
+              Next
+              <ChevronRight className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Modals */}
+      <ConfirmDeleteModal
+        open={deleteModalOpen}
+        onClose={() => setDeleteModalOpen(false)}
+        onConfirm={handleDeleteConfirm}
+        isLoading={isDeleting}
+        title="Delete Blog"
+        description="Are you sure you want to permanently delete this blog? This action cannot be undone."
       />
     </div>
   );

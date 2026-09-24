@@ -1,5 +1,5 @@
-import MarketplacePage from "@/components/marketplace/MarketplacePage";
+import ProductManagementPage from "@/components/marketplace/ProductManagementPage";
 
-export default function MarketplaceRoute() {
-  return <MarketplacePage />;
+export default function MarketplacePage() {
+  return <ProductManagementPage />;
 }

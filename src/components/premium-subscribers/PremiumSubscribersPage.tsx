@@ -7,7 +7,7 @@ import {
   type AdminSubscriptionItem,
 } from "@/store/apis";
 import type { PremiumSubscription } from "@/types";
-import { Download, FileBarChart2, Info, X } from "lucide-react";
+import { Info, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import ActivateSubscriptionModal from "./ActivateSubscriptionModal";
@@ -230,50 +230,7 @@ export default function PremiumSubscribersPage() {
     }
   };
 
-  const handleExportCSV = () => {
-    if (subscriptions.length === 0) {
-      toast.info("No subscription data to export");
-      return;
-    }
 
-    const headers = [
-      "User Name",
-      "User Email",
-      "Product",
-      "Plan Type",
-      "Start Date",
-      "Expiry Date",
-      "Days Left",
-      "Status",
-      "Payment Method",
-      "Order ID",
-    ];
-
-    const rows = subscriptions.map((s) => [
-      `"${s.userName.replace(/"/g, '""')}"`,
-      `"${s.userEmail.replace(/"/g, '""')}"`,
-      `"${s.product.replace(/"/g, '""')}"`,
-      `"${s.planType}"`,
-      `"${s.startDate}"`,
-      `"${s.expiryDate}"`,
-      s.daysRemaining ?? "",
-      `"${s.status}"`,
-      `"${s.payment}"`,
-      `"${s.orderId}"`,
-    ]);
-
-    const csvContent = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.setAttribute("download", `premium_subscribers_${new Date().toISOString().slice(0, 10)}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-    toast.success("CSV export downloaded");
-  };
 
   return (
     <div className="space-y-4">
@@ -286,24 +243,7 @@ export default function PremiumSubscribersPage() {
           </p>
         </div>
 
-        <div className="flex shrink-0 items-center gap-2">
-          <button
-            type="button"
-            onClick={handleExportCSV}
-            className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-[#dce7f2] bg-white px-3 text-xs font-semibold text-[#3f5f7a] shadow-xs transition-colors hover:bg-[#f8fbff] active:scale-95"
-          >
-            <Download className="h-3.5 w-3.5 text-[#6c869e]" />
-            Export CSV
-          </button>
-          <button
-            type="button"
-            onClick={() => toast.info("Subscription summary report will be available soon")}
-            className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-[#dce7f2] bg-white px-3 text-xs font-semibold text-[#3f5f7a] shadow-xs transition-colors hover:bg-[#f8fbff] active:scale-95"
-          >
-            <FileBarChart2 className="h-3.5 w-3.5 text-[#6c869e]" />
-            Subscription Report
-          </button>
-        </div>
+
       </section>
 
       {/* Info Banner */}

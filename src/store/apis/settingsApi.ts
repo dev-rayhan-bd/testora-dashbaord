@@ -12,6 +12,7 @@ export interface UpdateProfileData {
   email: string;
   city?: string;
   avatar?: string;
+  profileImage?: string;
   role: string;
 }
 

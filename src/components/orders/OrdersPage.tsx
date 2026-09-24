@@ -1,10 +1,11 @@
 "use client";
 
-import { orders, type Order } from "@/lib/orders-data";
-import { ChevronLeft, ChevronRight, Download, Eye, Info, Search } from "lucide-react";
-import { useMemo, useState } from "react";
+import { ChevronLeft, ChevronRight, Eye, Info, Search } from "lucide-react";
+import { useState } from "react";
 import { OrderStatusBadge, PaymentStatusBadge } from "./OrderBadges";
 import OrderDetailsModal from "./OrderDetailsModal";
+import { useGetOrdersQuery } from "@/store/apis";
+import { format } from "date-fns";
 
 function currency(value: number) {
   return "EUR " + value.toFixed(2);
@@ -15,23 +16,29 @@ export default function OrdersPage() {
   const [paymentFilter, setPaymentFilter] = useState("All");
   const [statusFilter, setStatusFilter] = useState("All");
   const [methodFilter, setMethodFilter] = useState("All");
-  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
 
-  const filteredOrders = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return orders.filter((order) => {
-      const matchesQuery =
-        !q ||
-        order.id.toLowerCase().includes(q) ||
-        order.customerName.toLowerCase().includes(q) ||
-        order.phoneNumber.toLowerCase().includes(q);
-      const matchesPayment = paymentFilter === "All" || order.paymentStatus === paymentFilter;
-      const matchesStatus = statusFilter === "All" || order.orderStatus === statusFilter;
-      const matchesMethod = methodFilter === "All" || order.paymentMethod === methodFilter;
-      return matchesQuery && matchesPayment && matchesStatus && matchesMethod;
-    });
-  }, [query, paymentFilter, statusFilter, methodFilter]);
+  const { data, isLoading } = useGetOrdersQuery({
+    searchTerm: query,
+    orderStatus: statusFilter,
+    paymentStatus: paymentFilter,
+    paymentMethod: methodFilter,
+    startDate: startDate || undefined,
+    endDate: endDate || undefined,
+  });
 
+  const handleResetFilters = () => {
+    setQuery("");
+    setPaymentFilter("All");
+    setStatusFilter("All");
+    setMethodFilter("All");
+    setStartDate("");
+    setEndDate("");
+  };
+
+  const orders = data?.data?.orders || data?.data || [];
   return (
     <div className="space-y-3">
       <div>
@@ -54,13 +61,6 @@ export default function OrdersPage() {
         </p>
       </div>
 
-      <button
-        type="button"
-        className="inline-flex h-8 items-center gap-1.5 rounded-md bg-[#2f86d8] px-3 text-xs font-medium text-white hover:bg-[#2a78c6]"
-      >
-        <Download className="h-3.5 w-3.5" />
-        Export CSV
-      </button>
 
       <div className="flex flex-wrap items-center gap-2 rounded-lg border border-[#dce7f2] bg-white p-2.5">
         <label className="relative min-w-64 flex-1">
@@ -72,6 +72,26 @@ export default function OrdersPage() {
             className="h-9 w-full rounded-md border border-[#dce7f2] bg-[#f8fbff] pr-3 pl-8 text-sm text-[#3f5f7a] outline-none placeholder:text-[#9ab0c3]"
           />
         </label>
+        
+        <div className="flex items-center gap-2 rounded-md border border-[#dce7f2] bg-[#f8fbff] px-2.5 h-9">
+          <span className="text-xs font-medium text-[#587189] whitespace-nowrap">Start Date:</span>
+          <input 
+            type="date" 
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+            className="bg-transparent text-sm text-[#587189] outline-none" 
+          />
+        </div>
+        
+        <div className="flex items-center gap-2 rounded-md border border-[#dce7f2] bg-[#f8fbff] px-2.5 h-9">
+          <span className="text-xs font-medium text-[#587189] whitespace-nowrap">End Date:</span>
+          <input 
+            type="date" 
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
+            className="bg-transparent text-sm text-[#587189] outline-none" 
+          />
+        </div>
 
         <select
           value={paymentFilter}
@@ -79,10 +99,10 @@ export default function OrdersPage() {
           className="h-9 min-w-40 rounded-md border border-[#dce7f2] bg-[#f8fbff] px-2.5 text-sm text-[#587189] outline-none"
         >
           <option value="All">All Payment Status</option>
-          <option value="Paid">Paid</option>
-          <option value="COD Pending">COD Pending</option>
-          <option value="Refunded">Refunded</option>
-          <option value="Failed">Failed</option>
+          <option value="pending">Pending</option>
+          <option value="paid">Paid</option>
+          <option value="failed">Failed</option>
+          <option value="refunded">Refunded</option>
         </select>
 
         <select
@@ -91,12 +111,12 @@ export default function OrdersPage() {
           className="h-9 min-w-36 rounded-md border border-[#dce7f2] bg-[#f8fbff] px-2.5 text-sm text-[#587189] outline-none"
         >
           <option value="All">All Order Status</option>
-          <option value="New">New</option>
-          <option value="Processing">Processing</option>
-          <option value="Shipped">Shipped</option>
-          <option value="Delivered">Delivered</option>
-          <option value="Cancelled">Cancelled</option>
-          <option value="Returned">Returned</option>
+          <option value="pending">Pending</option>
+          <option value="confirmed">Confirmed</option>
+          <option value="shipped">Shipped</option>
+          <option value="delivered">Delivered</option>
+          <option value="cancelled">Cancelled</option>
+          <option value="refunded">Refunded</option>
         </select>
 
         <select
@@ -105,9 +125,19 @@ export default function OrdersPage() {
           className="h-9 min-w-28 rounded-md border border-[#dce7f2] bg-[#f8fbff] px-2.5 text-sm text-[#587189] outline-none"
         >
           <option value="All">All Methods</option>
-          <option value="COD">COD</option>
-          <option value="Card">Card</option>
+          <option value="cash_on_delivery">Cash On Delivery</option>
+          <option value="stripe">Stripe (Card)</option>
         </select>
+
+        {(query || paymentFilter !== "All" || statusFilter !== "All" || methodFilter !== "All" || startDate || endDate) && (
+          <button
+            type="button"
+            onClick={handleResetFilters}
+            className="inline-flex h-9 items-center gap-1.5 rounded-md border border-[#f2c5c5] bg-[#fdeeee] px-3 text-sm font-medium text-[#cf5d5d] hover:bg-[#facdcd] transition-colors"
+          >
+            Reset
+          </button>
+        )}
       </div>
 
       <div className="overflow-hidden rounded-lg border border-[#dce7f2] bg-white">
@@ -128,42 +158,60 @@ export default function OrdersPage() {
               </tr>
             </thead>
             <tbody>
-              {filteredOrders.map((order) => (
-                <tr
-                  key={order.id}
-                  className="border-b border-[#ecf2f8] text-xs text-[#5e768e] last:border-b-0 hover:bg-[#f8fbff]"
-                >
-                  <td className="px-3 py-2.5 text-[#3571d5]">{order.id}</td>
-                  <td className="px-3 py-2.5">{order.date}</td>
-                  <td className="px-3 py-2.5">{order.customerName}</td>
-                  <td className="px-3 py-2.5">{order.phoneNumber}</td>
-                  <td className="max-w-50 px-3 py-2.5">{order.productSummary}</td>
-                  <td className="px-3 py-2.5">{order.paymentMethod}</td>
-                  <td className="px-3 py-2.5">
-                    <PaymentStatusBadge status={order.paymentStatus} />
-                  </td>
-                  <td className="px-3 py-2.5">
-                    <OrderStatusBadge status={order.orderStatus} />
-                  </td>
-                  <td className="px-3 py-2.5">{currency(order.totalAmount)}</td>
-                  <td className="px-3 py-2.5">
-                    <button
-                      type="button"
-                      onClick={() => setSelectedOrder(order)}
-                      className="rounded p-1 text-[#4f81d5] hover:bg-[#f3f7fb]"
-                      aria-label={`View ${order.id}`}
-                    >
-                      <Eye className="h-4 w-4" />
-                    </button>
+              {isLoading ? (
+                <tr>
+                  <td colSpan={10} className="px-4 py-10 text-center text-sm text-[#90a3b6]">
+                    Loading orders...
                   </td>
                 </tr>
-              ))}
-              {filteredOrders.length === 0 && (
+              ) : orders.length === 0 ? (
                 <tr>
                   <td colSpan={10} className="px-4 py-10 text-center text-sm text-[#90a3b6]">
                     No orders match your filters.
                   </td>
                 </tr>
+              ) : (
+                orders.map((order: any) => (
+                  <tr
+                    key={order._id}
+                    className="border-b border-[#ecf2f8] text-xs text-[#5e768e] last:border-b-0 hover:bg-[#f8fbff]"
+                  >
+                    <td className="px-3 py-2.5 text-[#3571d5]">{order.orderNumber}</td>
+                    <td className="px-3 py-2.5">{format(new Date(order.createdAt), "MMM dd, yyyy")}</td>
+                    <td className="px-3 py-2.5">{order.shippingAddress?.fullName || order.user?.name}</td>
+                    <td className="px-3 py-2.5">{order.shippingAddress?.phoneNumber}</td>
+                    <td className="px-3 py-2.5">
+                      <div className="max-w-[200px]">
+                        <p className="truncate font-medium text-[#4f647a]" title={order.items?.[0]?.title}>
+                          {order.items?.[0]?.title || "No item title"}
+                        </p>
+                        {order.items?.length > 1 && (
+                          <span className="mt-1 inline-flex items-center rounded-full bg-[#eaf4fd] px-1.5 py-0.5 text-[10px] font-semibold text-[#2f86d8]">
+                            +{order.items.length - 1} more
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-3 py-2.5 capitalize text-[#5e768e]">{order.payment?.method?.replace(/_/g, " ")}</td>
+                    <td className="px-3 py-2.5">
+                      <PaymentStatusBadge status={order.payment?.status} />
+                    </td>
+                    <td className="px-3 py-2.5">
+                      <OrderStatusBadge status={order.orderStatus} />
+                    </td>
+                    <td className="px-3 py-2.5">{currency(order.pricing?.totalAmount || 0)}</td>
+                    <td className="px-3 py-2.5">
+                      <button
+                        type="button"
+                        onClick={() => setSelectedOrder(order)}
+                        className="rounded p-1 text-[#4f81d5] hover:bg-[#f3f7fb]"
+                        aria-label={`View ${order.orderNumber}`}
+                      >
+                        <Eye className="h-4 w-4" />
+                      </button>
+                    </td>
+                  </tr>
+                ))
               )}
             </tbody>
           </table>
