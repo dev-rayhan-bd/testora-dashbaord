@@ -26,6 +26,7 @@ const navItems = [
   { href: "/categories", label: "Categories", icon: Tags },
   { href: "/marketplace", label: "Marketplace", icon: ShoppingBag },
   { href: "/orders", label: "Order", icon: Package },
+  { href: "/legal-content", label: "Legal Pages", icon: FileText },
 ];
 
 type SidebarProps = {

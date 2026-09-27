@@ -9,3 +9,4 @@ export * from "./blogApi";
 export * from "./categoryApi";
 export * from "./productApi";
 export * from "./orderApi";
+export * from "./contentApi";
