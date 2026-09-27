@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
 import { useGetQuestionsQuery } from "@/store/apis";
 import { Loader2 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 
 function statusClass(status: string) {
   return status.toLowerCase() === "published"
@@ -19,19 +19,55 @@ export default function QuestionLinkingSection({
   onChange,
 }: Props) {
   const [examType, setExamType] = useState("");
-  const [subjectName, setSubjectName] = useState("");
   const [status, setStatus] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
 
-  const { data, isLoading } = useGetQuestionsQuery({
-    limit: 100,
+  const [page, setPage] = useState(1);
+  const [accumulatedQuestions, setAccumulatedQuestions] = useState<any[]>([]);
+
+  useEffect(() => {
+    setPage(1);
+    setAccumulatedQuestions([]);
+  }, [examType, status, searchTerm]);
+
+  const { data, isLoading, isFetching } = useGetQuestionsQuery({
+    limit: 20,
+    page,
     examType: examType || undefined,
-    subjectName: subjectName || undefined,
     status: status || undefined,
     searchTerm: searchTerm || undefined,
   });
 
-  const questions = data?.data ?? [];
+  useEffect(() => {
+    if (data?.data) {
+      if (page === 1) {
+        setAccumulatedQuestions(data.data);
+      } else {
+        setAccumulatedQuestions((prev) => {
+          const existingIds = new Set(prev.map((q) => q._id));
+          const newQuestions = data.data.filter((q: any) => !existingIds.has(q._id));
+          return [...prev, ...newQuestions];
+        });
+      }
+    }
+  }, [data?.data, page]);
+
+  const hasMore = (data?.meta?.total || 0) > accumulatedQuestions.length;
+
+  const observerRef = useRef<IntersectionObserver | null>(null);
+  const loadMoreRef = useCallback(
+    (node: HTMLDivElement | null) => {
+      if (isLoading || isFetching) return;
+      if (observerRef.current) observerRef.current.disconnect();
+      observerRef.current = new IntersectionObserver((entries) => {
+        if (entries[0].isIntersecting && hasMore) {
+          setPage((p) => p + 1);
+        }
+      });
+      if (node) observerRef.current.observe(node);
+    },
+    [isLoading, isFetching, hasMore]
+  );
 
   const handleCheckboxChange = (id: string, checked: boolean) => {
     if (!onChange) return;
@@ -57,7 +93,7 @@ export default function QuestionLinkingSection({
         </ul>
       </div>
 
-      <div className="mt-3 grid gap-2 md:grid-cols-4">
+      <div className="mt-3 grid gap-2 md:grid-cols-3">
         <select
           value={examType}
           onChange={(e) => setExamType(e.target.value)}
@@ -68,12 +104,6 @@ export default function QuestionLinkingSection({
           <option value="semi_matura">Semimatura</option>
           <option value="provime">Entrance Exam</option>
         </select>
-        <input
-          value={subjectName}
-          onChange={(e) => setSubjectName(e.target.value)}
-          className="rounded-md border border-[#dce7f2] bg-[#f8fbff] px-3 py-2 text-xs text-[#4f6d87] outline-none"
-          placeholder="Filter by Subject..."
-        />
         <input
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
@@ -105,24 +135,26 @@ export default function QuestionLinkingSection({
             </tr>
           </thead>
           <tbody>
-            {isLoading ? (
+            {isLoading && page === 1 ? (
               <tr>
                 <td colSpan={7} className="px-3 py-8 text-center text-xs text-[#90a3b6]">
                   <Loader2 className="mx-auto h-5 w-5 animate-spin text-[#2f86d8]" />
                 </td>
               </tr>
-            ) : questions.length === 0 ? (
+            ) : accumulatedQuestions.length === 0 ? (
               <tr>
                 <td colSpan={7} className="px-3 py-8 text-center text-xs text-[#90a3b6]">
                   No questions found matching your criteria.
                 </td>
               </tr>
             ) : (
-              questions.map((row: any) => {
+              accumulatedQuestions.map((row: any, index: number) => {
                 const isSelected = selectedQuestionIds.includes(row._id);
+                const isLastElement = index === accumulatedQuestions.length - 1;
                 return (
                   <tr
                     key={row._id}
+                    ref={isLastElement ? loadMoreRef : null}
                     className="border-b border-[#ecf2f8] text-xs text-[#5e768e] last:border-b-0 hover:bg-[#f8fbff]"
                   >
                     <td className="px-3 py-2">
@@ -162,6 +194,13 @@ export default function QuestionLinkingSection({
                   </tr>
                 );
               })
+            )}
+            {isFetching && page > 1 && (
+              <tr>
+                <td colSpan={7} className="px-3 py-4 text-center text-xs text-[#90a3b6]">
+                  <Loader2 className="mx-auto h-4 w-4 animate-spin text-[#2f86d8]" />
+                </td>
+              </tr>
             )}
           </tbody>
         </table>
