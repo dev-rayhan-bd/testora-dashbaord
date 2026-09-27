@@ -3,6 +3,9 @@
 import { ChevronLeft, Info } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useCreateTestMutation } from "@/store/apis";
+import { toast } from "sonner";
 import BasicTestInformationSection from "./BasicTestInformationSection";
 import PassageIntegrationSection from "./PassageIntegrationSection";
 import PreviewTestStructureSection from "./PreviewTestStructureSection";
@@ -24,6 +27,7 @@ type FormState = {
   access: string;
   status: string;
   totalQuestions: string;
+  questionIds: string[];
 };
 
 const initialState: FormState = {
@@ -38,9 +42,12 @@ const initialState: FormState = {
   access: "Premium",
   status: "Draft",
   totalQuestions: "100",
+  questionIds: [],
 };
 
 export default function CreateTestPage() {
+  const router = useRouter();
+  const [createTest, { isLoading: isCreating }] = useCreateTestMutation();
   const [form, setForm] = useState<FormState>(initialState);
 
   const updateField = (field: keyof FormState, value: string) => {
@@ -59,6 +66,38 @@ export default function CreateTestPage() {
       }
       return { ...prev, [field]: value };
     });
+  };
+
+  const handleSave = async (status: "Published" | "Draft") => {
+    if (!form.testTitle.trim()) {
+      return toast.error("Test Title is required");
+    }
+    const examTypeMap: Record<string, string> = {
+      Matura: "matura",
+      Semimatura: "semi_matura",
+      "Entrance Exam": "provime",
+    };
+    
+    try {
+      await createTest({
+        title: form.testTitle,
+        testCode: `TEST-${Date.now().toString().slice(-6)}`, // Auto generate or take from form if exists
+        examType: examTypeMap[form.category] || "matura",
+        year: Number(form.year),
+        testType: form.testType.toLowerCase(),
+        access: form.access.toLowerCase(),
+        status: status.toLowerCase(),
+        subject: form.subject || undefined,
+        faculty: form.faculty || undefined,
+        departments: form.department ? [form.department] : undefined,
+        questionIds: form.questionIds,
+      }).unwrap();
+      
+      toast.success(`Test ${status === "Published" ? "published" : "saved as draft"} successfully`);
+      router.push("/questions/test-archive");
+    } catch (err: any) {
+      toast.error(err?.data?.message || "Failed to create test");
+    }
   };
 
   return (
@@ -119,7 +158,10 @@ export default function CreateTestPage() {
         department={form.department}
       />
 
-      <QuestionLinkingSection />
+      <QuestionLinkingSection
+        selectedQuestionIds={form.questionIds}
+        onChange={(ids) => updateField("questionIds", ids as any)}
+      />
       <QuestionOrderConfigurationSection />
       <PassageIntegrationSection />
 
@@ -135,6 +177,7 @@ export default function CreateTestPage() {
       <section className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[#dce7f2] bg-white p-3">
         <button
           type="button"
+          onClick={() => router.back()}
           className="rounded-md border border-[#dce7f2] bg-white px-3 py-2 text-xs font-medium text-[#5e768e] hover:bg-[#f8fbff]"
         >
           Cancel
@@ -148,9 +191,11 @@ export default function CreateTestPage() {
           </button>
           <button
             type="button"
-            className="rounded-md border border-[#d6e5f4] bg-[#eaf2fb] px-3 py-2 text-xs font-medium text-[#4d93d9] hover:bg-[#dbeafa]"
+            disabled={isCreating}
+            onClick={() => handleSave("Draft")}
+            className="rounded-md border border-[#d6e5f4] bg-[#eaf2fb] px-3 py-2 text-xs font-medium text-[#4d93d9] hover:bg-[#dbeafa] disabled:opacity-50"
           >
-            Save Draft
+            {isCreating ? "Saving..." : "Save Draft"}
           </button>
           <button
             type="button"
@@ -160,9 +205,11 @@ export default function CreateTestPage() {
           </button>
           <button
             type="button"
-            className="rounded-md bg-[#2f86d8] px-3 py-2 text-xs font-medium text-white hover:bg-[#2a78c6]"
+            disabled={isCreating}
+            onClick={() => handleSave("Published")}
+            className="rounded-md bg-[#2f86d8] px-3 py-2 text-xs font-medium text-white hover:bg-[#2a78c6] disabled:opacity-50"
           >
-            Publish Test
+            {isCreating ? "Publishing..." : "Publish Test"}
           </button>
         </div>
       </section>

@@ -20,10 +20,11 @@ import {
   CheckCircle,
   BookOpen,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
+import QuestionLinkingSection from "./create/QuestionLinkingSection";
 
 interface CreateEditProps {
   open: boolean;
@@ -75,6 +76,21 @@ function CreateEditTestDialog({
     const fac = (testToEdit as unknown as { faculty?: string | { _id?: string } })?.faculty;
     return typeof fac === "object" ? fac?._id || "" : fac || "";
   });
+  const [questionIds, setQuestionIds] = useState<string[]>([]);
+
+  const { data: testData, isLoading: isLoadingTest } = useGetSingleTestQuery(
+    testToEdit?._id || "",
+    { skip: !isEditing }
+  );
+
+  useEffect(() => {
+    if (isEditing && testData?.data) {
+      const responseData = testData.data as any;
+      const fetchedQuestions = responseData?.questions || responseData?.test?.questions || [];
+      const qIds = fetchedQuestions.map((q: any) => q._id || q);
+      setQuestionIds(qIds);
+    }
+  }, [isEditing, testData]);
 
   const subjects = (metaFilters?.data?.subjects ?? []).filter(
     (s) => s.examType === examType
@@ -101,6 +117,7 @@ function CreateEditTestDialog({
           status,
           subject: examType !== "provime" ? subject || undefined : undefined,
           faculty: examType === "provime" ? faculty || undefined : undefined,
+          questionIds,
         }).unwrap();
         toast.success("Test updated successfully");
       } else {
@@ -114,6 +131,7 @@ function CreateEditTestDialog({
           status,
           subject: examType !== "provime" ? subject || undefined : undefined,
           faculty: examType === "provime" ? faculty || undefined : undefined,
+          questionIds,
         }).unwrap();
         toast.success("Test created successfully");
       }
@@ -128,7 +146,7 @@ function CreateEditTestDialog({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#2d4056]/40 p-4 backdrop-blur-xs">
-      <div className="w-full max-w-lg rounded-2xl border border-[#dce7f2] bg-white shadow-2xl">
+      <div className="flex w-full max-w-5xl max-h-[95vh] flex-col overflow-hidden rounded-2xl border border-[#dce7f2] bg-white shadow-2xl">
         <div className="flex items-center justify-between border-b border-[#e6edf5] px-6 py-4">
           <div className="flex items-center gap-2.5">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#edf4fe] text-[#2563eb]">
@@ -151,11 +169,18 @@ function CreateEditTestDialog({
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4 p-6">
-          <div>
-            <label className="mb-1 block text-xs font-semibold text-[#4f6d87]">
-              Test Title <span className="text-rose-500">*</span>
-            </label>
+        <div className="flex-1 overflow-y-auto">
+          {isLoadingTest ? (
+            <div className="flex h-40 flex-col items-center justify-center gap-3">
+              <Loader2 className="h-6 w-6 animate-spin text-[#2563eb]" />
+              <p className="text-xs text-[#7e95ab]">Loading test details...</p>
+            </div>
+          ) : (
+            <form id="create-edit-test-form" onSubmit={handleSubmit} className="space-y-4 p-6">
+              <div>
+                <label className="mb-1 block text-xs font-semibold text-[#4f6d87]">
+                  Test Title <span className="text-rose-500">*</span>
+                </label>
             <input
               type="text"
               value={title}
@@ -257,7 +282,7 @@ function CreateEditTestDialog({
                 <option value="">Select Faculty...</option>
                 {faculties.map((f) => (
                   <option key={f._id} value={f._id}>
-                    {f.name}
+                    {(f as any).nameInEnglish || f.name}
                   </option>
                 ))}
               </select>
@@ -273,40 +298,51 @@ function CreateEditTestDialog({
                 <option value="">Select Subject...</option>
                 {subjects.map((s) => (
                   <option key={s._id} value={s._id}>
-                    {s.name}
+                    {(s as any).nameInEnglish || s.name}
                   </option>
                 ))}
               </select>
             </div>
           )}
 
-          <div className="flex items-center justify-end gap-2 border-t border-[#e6edf5] pt-4">
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={isSubmitting}
-              className="rounded-lg px-4 py-2 text-xs font-semibold text-[#6f8194] transition-colors hover:bg-[#f5f9fd] disabled:opacity-50"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-[#2563eb] px-5 py-2 text-xs font-semibold text-white shadow-sm transition-all hover:bg-[#1d4ed8] active:scale-95 disabled:opacity-60"
-            >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  Saving Test...
-                </>
-              ) : isEditing ? (
-                "Save Changes"
-              ) : (
-                "Create Test"
-              )}
-            </button>
+          <div className="mt-4 pt-4 border-t border-[#e6edf5]">
+            <h4 className="mb-2 text-sm font-bold text-[#2f4256]">Link Questions</h4>
+            <QuestionLinkingSection
+              selectedQuestionIds={questionIds}
+              onChange={setQuestionIds}
+            />
           </div>
-        </form>
+            </form>
+          )}
+        </div>
+
+        <div className="flex items-center justify-end gap-2 border-t border-[#e6edf5] px-6 py-4">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={isSubmitting}
+            className="rounded-lg px-4 py-2 text-xs font-semibold text-[#6f8194] transition-colors hover:bg-[#f5f9fd] disabled:opacity-50"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            form="create-edit-test-form"
+            disabled={isSubmitting || isLoadingTest}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-[#2563eb] px-5 py-2 text-xs font-semibold text-white shadow-sm transition-all hover:bg-[#1d4ed8] active:scale-95 disabled:opacity-60"
+          >
+            {isSubmitting ? (
+              <>
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                Saving Test...
+              </>
+            ) : isEditing ? (
+              "Save Changes"
+            ) : (
+              "Create Test"
+            )}
+          </button>
+        </div>
       </div>
     </div>
   );

@@ -417,7 +417,7 @@ function QuestionModalDialog({
                     <option value="">Select Faculty...</option>
                     {faculties.map((f) => (
                       <option key={f._id} value={f._id}>
-                        {f.name}
+                        {(f as any).nameInEnglish || f.name}
                       </option>
                     ))}
                   </select>
@@ -439,7 +439,7 @@ function QuestionModalDialog({
                   >
                     {filteredDepartments.map((d) => (
                       <option key={d._id} value={d._id}>
-                        {d.name}
+                        {(d as any).nameInEnglish || d.name}
                       </option>
                     ))}
                   </select>
@@ -461,7 +461,7 @@ function QuestionModalDialog({
                   <option value="">Select Subject...</option>
                   {filteredSubjects.map((s) => (
                     <option key={s._id} value={s._id}>
-                      {s.name}
+                      {(s as any).nameInEnglish || s.name}
                     </option>
                   ))}
                 </select>

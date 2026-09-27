@@ -192,7 +192,13 @@ export function DeleteQuestionModal({
               <span>•</span>
               <span>Year {question.year}</span>
               <span>•</span>
-              <span>{question.subjectName || question.facultyName || "General"}</span>
+              <span>{
+                (typeof question.subject === "object" ? question.subject?.nameInEnglish || question.subject?.name : null) ||
+                question.subjectName || 
+                (typeof question.faculty === "object" ? question.faculty?.nameInEnglish || question.faculty?.name : null) ||
+                question.facultyName || 
+                "General"
+              }</span>
             </div>
           </div>
         </div>

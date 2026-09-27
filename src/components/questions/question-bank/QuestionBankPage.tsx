@@ -804,10 +804,12 @@ export default function QuestionBankPage() {
 
                       {/* 4. SUBJECT / FACULTY */}
                       <td className="px-3.5 py-3 whitespace-nowrap text-[#405872] font-medium">
-                        {q.subjectName || 
-                         (typeof q.subject === "string" ? meta?.subjects?.find(s => s._id === q.subject)?.name : q.subject?.name) || 
+                        {(typeof q.subject === "object" ? q.subject?.nameInEnglish || q.subject?.name : null) || 
+                         (typeof q.subject === "string" ? (() => { const s = meta?.subjects?.find(x => x._id === q.subject); return (s as any)?.nameInEnglish || s?.name; })() : null) || 
+                         q.subjectName || 
+                         (typeof q.faculty === "object" ? q.faculty?.nameInEnglish || q.faculty?.name : null) || 
+                         (typeof q.faculty === "string" ? (() => { const f = meta?.faculties?.find(x => x._id === q.faculty); return (f as any)?.nameInEnglish || f?.name; })() : null) || 
                          q.facultyName || 
-                         (typeof q.faculty === "string" ? meta?.faculties?.find(f => f._id === q.faculty)?.name : q.faculty?.name) || 
                          "—"}
                       </td>
 

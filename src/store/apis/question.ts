@@ -51,9 +51,9 @@ export interface QuestionListItem {
   access: string;
   difficultyLevel: string;
   status: string;
-  subject?: string | { _id: string; name: string } | null;
+  subject?: string | { _id: string; name: string; nameInEnglish?: string; nameInAlbanian?: string } | null;
   subjectName?: string | null;
-  faculty?: string | { _id: string; name: string } | null;
+  faculty?: string | { _id: string; name: string; nameInEnglish?: string; nameInAlbanian?: string } | null;
   facultyName?: string | null;
   departmentName?: string | null;
   passageCode?: string | null;
