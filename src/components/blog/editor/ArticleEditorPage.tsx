@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import { ChevronLeft, Eye, FileEdit, Globe, Pencil, Check, Loader2 } from "lucide-react";
 import RichTextToolbar from "./RichTextToolbar";
 import ThumbnailUploadSection from "./ThumbnailUploadSection";
-import SeoSettingsSection from "./SeoSettingsSection";
 import ArticleSidebar from "./ArticleSidebar";
 import { useGetSingleBlogQuery, useAddBlogMutation, useUpdateBlogMutation } from "@/store/apis/blogApi";
 import { toast } from "sonner";
@@ -223,12 +222,6 @@ export default function ArticleEditorPage({ blogId }: Props) {
           <ThumbnailUploadSection
             previewUrl={thumbnailUrl}
             onChange={handleThumbnailChange}
-          />
-          <SeoSettingsSection
-            data={seo}
-            onChange={(f, v) => setSeo((p) => ({ ...p, [f]: v }))}
-            articleTitle={title}
-            slug={title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)+/g, "")}
           />
         </div>
       </div>
