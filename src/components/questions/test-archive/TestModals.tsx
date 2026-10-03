@@ -271,7 +271,7 @@ function CreateEditTestDialog({
             </div>
           </div>
 
-          {examType === "provime" ? (
+          {examType === "provime" && (
             <div>
               <label className="mb-1 block text-xs font-semibold text-[#4f6d87]">Faculty</label>
               <select
@@ -283,22 +283,6 @@ function CreateEditTestDialog({
                 {faculties.map((f) => (
                   <option key={f._id} value={f._id}>
                     {(f as any).nameInEnglish || f.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          ) : (
-            <div>
-              <label className="mb-1 block text-xs font-semibold text-[#4f6d87]">Subject</label>
-              <select
-                value={subject}
-                onChange={(e) => setSubject(e.target.value)}
-                className="h-9 w-full rounded-lg border border-[#dce7f2] bg-[#f8fbff] px-3 text-xs text-[#3f5f7a] outline-none"
-              >
-                <option value="">Select Subject...</option>
-                {subjects.map((s) => (
-                  <option key={s._id} value={s._id}>
-                    {(s as any).nameInEnglish || s.name}
                   </option>
                 ))}
               </select>
