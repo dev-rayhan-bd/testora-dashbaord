@@ -102,7 +102,7 @@ export default function QuestionLinkingSection({
           <option value="">All Categories</option>
           <option value="matura">Matura</option>
           <option value="semi_matura">Semimatura</option>
-          <option value="provime">Entrance Exam</option>
+          <option value="provime">Provime</option>
         </select>
         <input
           value={searchTerm}
@@ -128,6 +128,7 @@ export default function QuestionLinkingSection({
               <th className="px-3 py-2">Use</th>
               <th className="px-3 py-2">ID</th>
               <th className="px-3 py-2">Question Test Preview</th>
+              <th className="px-3 py-2 text-center">Mandatory</th>
               <th className="px-3 py-2">Category</th>
               <th className="px-3 py-2">Subject / Faculty</th>
               <th className="px-3 py-2">Passage</th>
@@ -137,13 +138,13 @@ export default function QuestionLinkingSection({
           <tbody>
             {isLoading && page === 1 ? (
               <tr>
-                <td colSpan={7} className="px-3 py-8 text-center text-xs text-[#90a3b6]">
+                <td colSpan={8} className="px-3 py-8 text-center text-xs text-[#90a3b6]">
                   <Loader2 className="mx-auto h-5 w-5 animate-spin text-[#2f86d8]" />
                 </td>
               </tr>
             ) : accumulatedQuestions.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-3 py-8 text-center text-xs text-[#90a3b6]">
+                <td colSpan={8} className="px-3 py-8 text-center text-xs text-[#90a3b6]">
                   No questions found matching your criteria.
                 </td>
               </tr>
@@ -166,8 +167,19 @@ export default function QuestionLinkingSection({
                       />
                     </td>
                     <td className="px-3 py-2 font-semibold text-[#2f86d8]">{row._id.slice(-6).toUpperCase()}</td>
-                    <td className="px-3 py-2 line-clamp-2 max-w-xs" title={row.questionText}>
-                      {row.questionText}
+                    <td className="px-3 py-2 max-w-64" title={row.questionText}>
+                      <p className="line-clamp-2 font-medium text-[#2d4256] leading-snug">
+                        {row.questionText}
+                      </p>
+                    </td>
+                    <td className="px-3 py-2 text-center whitespace-nowrap">
+                      {row.isMandatory ? (
+                        <span className="inline-flex items-center gap-1 rounded-md border border-[#cbe1f5] bg-[#edf5fc] px-2 py-0.5 text-[10px] font-bold text-[#2563eb]">
+                          Yes
+                        </span>
+                      ) : (
+                        <span className="text-[#a4b5c6] font-medium text-xs">—</span>
+                      )}
                     </td>
                     <td className="px-3 py-2 capitalize">{row.examType?.replace("_", " ")}</td>
                     <td className="px-3 py-2">
@@ -197,7 +209,7 @@ export default function QuestionLinkingSection({
             )}
             {isFetching && page > 1 && (
               <tr>
-                <td colSpan={7} className="px-3 py-4 text-center text-xs text-[#90a3b6]">
+                <td colSpan={8} className="px-3 py-4 text-center text-xs text-[#90a3b6]">
                   <Loader2 className="mx-auto h-4 w-4 animate-spin text-[#2f86d8]" />
                 </td>
               </tr>

@@ -59,6 +59,7 @@ export interface QuestionListItem {
   passageCode?: string | null;
   passage?: string | null;
   explanation?: string;
+  isMandatory?: boolean;
   createdAt: string;
 }
 
@@ -88,6 +89,7 @@ export interface SingleQuestionResponse {
   difficultyLevel: string;
   access: string;
   status: string;
+  isMandatory?: boolean;
   createdAt: string;
   subjectName?: string | null;
   subject?: string | { _id: string; name: string } | null;
@@ -134,7 +136,12 @@ export interface CreateQuestionPayload {
   departments?: string[];
   passage?: string;
   explanation?: string;
+  isMandatory?: boolean;
   question_image?: File | File[] | null;
+  option_a_image?: File | null;
+  option_b_image?: File | null;
+  option_c_image?: File | null;
+  option_d_image?: File | null;
   questions?: any[];
 }
 
@@ -153,7 +160,12 @@ export interface UpdateQuestionPayload {
   departments?: string[];
   passage?: string;
   explanation?: string;
+  isMandatory?: boolean;
   question_image?: File | File[] | null;
+  option_a_image?: File | null;
+  option_b_image?: File | null;
+  option_c_image?: File | null;
+  option_d_image?: File | null;
   questions?: any[];
 }
 
@@ -502,6 +514,7 @@ function buildQuestionFormData(payload: CreateQuestionPayload | UpdateQuestionPa
   }
   if (payload.passage) formData.append("passage", payload.passage);
   if (payload.explanation) formData.append("explanation", payload.explanation);
+  if (payload.isMandatory !== undefined) formData.append("isMandatory", String(payload.isMandatory));
   
   if (payload.question_image) {
     if (Array.isArray(payload.question_image)) {
@@ -510,6 +523,11 @@ function buildQuestionFormData(payload: CreateQuestionPayload | UpdateQuestionPa
       formData.append("question_image", payload.question_image);
     }
   }
+
+  if (payload.option_a_image) formData.append("option_a_image", payload.option_a_image);
+  if (payload.option_b_image) formData.append("option_b_image", payload.option_b_image);
+  if (payload.option_c_image) formData.append("option_c_image", payload.option_c_image);
+  if (payload.option_d_image) formData.append("option_d_image", payload.option_d_image);
 
   if (payload.questions) formData.append("questions", JSON.stringify(payload.questions));
 

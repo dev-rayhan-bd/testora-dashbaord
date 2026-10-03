@@ -278,7 +278,7 @@ export default function TestArchivePage() {
             <option value="all">All Exam Types</option>
             <option value="matura">Matura</option>
             <option value="semi_matura">Semimatura</option>
-            <option value="provime">Entrance Exam</option>
+            <option value="provime">Provime</option>
           </select>
 
           {/* Year */}

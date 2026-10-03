@@ -158,7 +158,20 @@ function SingleQuestionModal({
                     >
                       {String.fromCharCode(65 + idx)}
                     </span>
-                    <span className="flex-1">{opt.text}</span>
+                    <div className="flex-1 flex flex-col gap-2 py-1">
+                      {opt.text && <span>{opt.text}</span>}
+                      {opt.imageUrl && (
+                        <div className="relative overflow-hidden rounded-md border border-[#dce7f2] bg-slate-50 w-fit">
+                          <Image
+                            src={opt.imageUrl}
+                            alt={`Option ${String.fromCharCode(65 + idx)}`}
+                            width={120}
+                            height={80}
+                            className="object-contain"
+                          />
+                        </div>
+                      )}
+                    </div>
                     {isCorrect && (
                       <span className="inline-flex items-center gap-1 text-[11px] font-bold text-[#15803d]">
                         <CheckCircle className="h-3.5 w-3.5" />
@@ -734,6 +747,7 @@ export default function QuestionBankPage() {
                 <th className="px-3.5 py-3">Subject / Faculty</th>
                 <th className="px-3.5 py-3">Access</th>
                 <th className="px-3.5 py-3">Passage</th>
+                <th className="px-3.5 py-3 text-center">Mandatory</th>
                 <th className="px-3.5 py-3">Question Text</th>
                 <th className="px-3.5 py-3">Correct Answer</th>
                 <th className="px-3.5 py-3">Status</th>
@@ -753,6 +767,7 @@ export default function QuestionBankPage() {
                     <td className="px-3.5 py-3.5"><div className="h-4 w-24 rounded bg-slate-200" /></td>
                     <td className="px-3.5 py-3.5"><div className="h-5 w-14 rounded-full bg-slate-200" /></td>
                     <td className="px-3.5 py-3.5"><div className="h-4 w-12 rounded bg-slate-200" /></td>
+                    <td className="px-3.5 py-3.5"><div className="h-4 w-6 mx-auto rounded bg-slate-200" /></td>
                     <td className="px-3.5 py-3.5"><div className="h-4 w-48 rounded bg-slate-200" /></td>
                     <td className="px-3.5 py-3.5"><div className="h-5 w-20 rounded bg-slate-200" /></td>
                     <td className="px-3.5 py-3.5"><div className="h-5 w-16 rounded-full bg-slate-200" /></td>
@@ -834,6 +849,17 @@ export default function QuestionBankPage() {
                           </span>
                         ) : (
                           <span className="text-[#a4b5c6]">—</span>
+                        )}
+                      </td>
+
+                      {/* MANDATORY */}
+                      <td className="px-3.5 py-3 text-center whitespace-nowrap">
+                        {q.isMandatory ? (
+                          <span className="inline-flex items-center gap-1 rounded-md border border-[#cbe1f5] bg-[#edf5fc] px-2 py-0.5 text-[10px] font-bold text-[#2563eb]">
+                            Yes
+                          </span>
+                        ) : (
+                          <span className="text-[#a4b5c6] font-medium text-xs">—</span>
                         )}
                       </td>
 

@@ -52,7 +52,7 @@ export default function ArchiveRow({
       : row.examType === "semi_matura"
       ? "Semimatura"
       : row.examType === "provime"
-      ? "Entrance Exam"
+      ? "Provime"
       : row.examType;
 
   const subjectFacultyLabel =

@@ -18,7 +18,7 @@ import {
   X,
 } from "lucide-react";
 import Image from "next/image";
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { toast } from "sonner";
 
 interface Props {
@@ -65,12 +65,12 @@ function QuestionModalDialog({
   const [draftQuestions, setDraftQuestions] = useState<any[]>([]);
 
   // Form State
-  const [examType, setExamType] = useState<string>(() => questionToEdit?.examType || "matura");
+  const [examType, setExamType] = useState<string>(() => (questionToEdit?.examType || "matura").toLowerCase());
   const [year, setYear] = useState<number>(() => questionToEdit?.year || new Date().getFullYear());
   const [questionText, setQuestionText] = useState(() => questionToEdit?.questionText || "");
-  const [options, setOptions] = useState<QuestionOption[]>(() => {
+  const [options, setOptions] = useState<any[]>(() => {
     if (questionToEdit?.options && questionToEdit.options.length > 0) {
-      return questionToEdit.options.map((opt) => ({ text: opt.text }));
+      return questionToEdit.options.map((opt: any) => ({ text: opt.text, imageUrl: opt.imageUrl }));
     }
     return [{ text: "" }, { text: "" }, { text: "" }, { text: "" }];
   });
@@ -78,6 +78,7 @@ function QuestionModalDialog({
   const [access, setAccess] = useState<string>(() => questionToEdit?.access || "free");
   const [difficultyLevel, setDifficultyLevel] = useState<string>(() => questionToEdit?.difficultyLevel || "medium");
   const [status, setStatus] = useState<string>(() => questionToEdit?.status || "published");
+  const [isMandatory, setIsMandatory] = useState<boolean>(() => questionToEdit?.isMandatory ?? false);
   const [subject, setSubject] = useState<string>(() => {
     if (!questionToEdit) return "";
     const subj = (questionToEdit as unknown as { subject?: string | { _id?: string } })?.subject;
@@ -110,12 +111,48 @@ function QuestionModalDialog({
   const allDepartments = metaFilters?.data?.departments ?? [];
   const passages = passagesData?.data ?? [];
 
-  // Filter subjects for current examType
-  const filteredSubjects = subjects.filter((s) => s.examType === examType);
+  useEffect(() => {
+    if (isEditing && questionToEdit) {
+      if (subjects.length > 0 && !subjects.some((s) => s._id === subject)) {
+        let nameToMatch = questionToEdit.subjectName;
+        if (!nameToMatch && questionToEdit.subject) {
+          nameToMatch = typeof questionToEdit.subject === "string" ? questionToEdit.subject : (questionToEdit.subject as any).name || (questionToEdit.subject as any).nameInEnglish;
+        }
+        const found = subjects.find((s) => s.name === nameToMatch || (s as any).nameInEnglish === nameToMatch || s._id === questionToEdit.subject || s._id === (questionToEdit.subject as any)?._id);
+        if (found) setSubject(found._id);
+      }
+      if (faculties.length > 0 && !faculties.some((f) => f._id === faculty)) {
+        let nameToMatch = questionToEdit.facultyName;
+        if (!nameToMatch && questionToEdit.faculty) {
+          nameToMatch = typeof questionToEdit.faculty === "string" ? questionToEdit.faculty : (questionToEdit.faculty as any).name || (questionToEdit.faculty as any).nameInEnglish;
+        }
+        const found = faculties.find((f) => f.name === nameToMatch || (f as any).nameInEnglish === nameToMatch || f._id === questionToEdit.faculty || f._id === (questionToEdit.faculty as any)?._id);
+        if (found) setFaculty(found._id);
+      }
+      if (passages.length > 0 && !passages.some((p) => p._id === passage)) {
+        let codeToMatch = questionToEdit.passageCode;
+        if (!codeToMatch && questionToEdit.passage) {
+          codeToMatch = typeof questionToEdit.passage === "string" ? questionToEdit.passage : (questionToEdit.passage as any).passageCode;
+        }
+        const found = passages.find((p) => p.passageCode === codeToMatch || p._id === questionToEdit.passage || p._id === (questionToEdit.passage as any)?._id);
+        if (found) setPassage(found._id);
+      }
+    }
+  }, [isEditing, questionToEdit, subjects, faculties, passages, subject, faculty, passage]);
+
+  // Filter subjects for current examType, but fallback to showing all if strict matching fails
+  const filteredSubjects = subjects.filter((s) => {
+    if (s._id === subject) return true;
+    if (!s.examType) return true; // Show all if examType is missing
+    const sExam = typeof s.examType === "string" ? s.examType : (s.examType as any).name || (s.examType as any).slug || "";
+    // If it's an ID (24 hex chars), just show it. Otherwise match strictly.
+    if (sExam.length === 24 && /^[0-9a-fA-F]{24}$/.test(sExam)) return true;
+    return sExam.toLowerCase() === examType.toLowerCase();
+  });
 
   // Filter departments for selected faculty
   const filteredDepartments = allDepartments.filter(
-    (d) => !faculty || d.faculty === faculty
+    (d) => (!faculty || d.faculty === faculty) || departments.includes(d._id)
   );
 
   const handleOptionChange = (index: number, text: string) => {
@@ -139,6 +176,35 @@ function QuestionModalDialog({
         setCorrectOptionIndex((prev) => Math.max(0, prev - 1));
       }
     }
+  };
+
+  const handleOptionImageChange = (index: number, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error(`Option ${String.fromCharCode(65 + index)} image exceeds 5MB`);
+        return;
+      }
+      setOptions((prev) => {
+        const next = [...prev];
+        if (next[index].imageUrl && next[index].imageUrl.startsWith("blob:")) {
+          URL.revokeObjectURL(next[index].imageUrl);
+        }
+        next[index] = { ...next[index], imageFile: file, imageUrl: URL.createObjectURL(file) };
+        return next;
+      });
+    }
+  };
+
+  const handleRemoveOptionImage = (index: number) => {
+    setOptions((prev) => {
+      const next = [...prev];
+      if (next[index].imageUrl && next[index].imageUrl.startsWith("blob:")) {
+        URL.revokeObjectURL(next[index].imageUrl);
+      }
+      next[index] = { ...next[index], imageFile: null, imageUrl: null };
+      return next;
+    });
   };
 
   const handleFileDrop = (e: React.DragEvent<HTMLDivElement>) => {
@@ -174,10 +240,17 @@ function QuestionModalDialog({
       return false;
     }
 
-    const filledOptions = options.filter((o) => o.text.trim().length > 0);
-    if (filledOptions.length < 2) {
+    if (options.length < 2) {
       toast.error("Please provide at least 2 options");
       return false;
+    }
+
+    for (let i = 0; i < options.length; i++) {
+      const o = options[i];
+      if (!o.text.trim() && !o.imageUrl && !o.imageFile) {
+        toast.error(`Option ${String.fromCharCode(65 + i)} must have either text or an image.`);
+        return false;
+      }
     }
 
     if (examType === "provime") {
@@ -199,7 +272,7 @@ function QuestionModalDialog({
   };
 
   const buildCurrentPayload = () => {
-    return {
+    const payload: any = {
       examType,
       year,
       questionText: questionText.trim(),
@@ -208,6 +281,7 @@ function QuestionModalDialog({
       access,
       difficultyLevel,
       status,
+      isMandatory,
       subject: examType !== "provime" ? subject : undefined,
       faculty: examType === "provime" ? faculty : undefined,
       departments: examType === "provime" ? departments : undefined,
@@ -215,6 +289,13 @@ function QuestionModalDialog({
       explanation: explanation.trim() || undefined,
       question_image: imageFile,
     };
+
+    if (options[0]?.imageFile) payload.option_a_image = options[0].imageFile;
+    if (options[1]?.imageFile) payload.option_b_image = options[1].imageFile;
+    if (options[2]?.imageFile) payload.option_c_image = options[2].imageFile;
+    if (options[3]?.imageFile) payload.option_d_image = options[3].imageFile;
+
+    return payload;
   };
 
   const handleQueueQuestion = () => {
@@ -273,6 +354,7 @@ function QuestionModalDialog({
           access: finalDrafts[0].access,
           difficultyLevel: finalDrafts[0].difficultyLevel,
           status: finalDrafts[0].status,
+          isMandatory: finalDrafts[0].isMandatory,
           subject: finalDrafts[0].subject,
           faculty: finalDrafts[0].faculty,
           departments: finalDrafts[0].departments,
@@ -625,6 +707,30 @@ function QuestionModalDialog({
                       className="h-8 flex-1 bg-transparent px-2 text-xs text-[#3f5f7a] outline-none placeholder:text-[#9ab0c3]"
                     />
 
+                    {/* Option Image Display / Upload */}
+                    {option.imageUrl ? (
+                      <div className="relative flex h-8 w-12 shrink-0 items-center justify-center overflow-hidden rounded bg-slate-100 border border-[#dce7f2]">
+                        <Image src={option.imageUrl} alt="Option" fill className="object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveOptionImage(idx)}
+                          className="absolute -top-1 -right-1 rounded-full bg-rose-500 p-0.5 text-white shadow-sm hover:bg-rose-600"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ) : (
+                      <label className="flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded border border-[#dce7f2] bg-[#f8fbff] text-[#9ab0c3] transition-colors hover:border-[#7fb3e8] hover:text-[#2563eb]">
+                        <UploadCloud className="h-3.5 w-3.5" />
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => handleOptionImageChange(idx, e)}
+                        />
+                      </label>
+                    )}
+
                     {isCorrect && (
                       <span className="inline-flex items-center gap-1 rounded-md bg-[#e3f4e8] px-2 py-0.5 text-[10px] font-bold text-[#16a34a]">
                         <CheckCircle2 className="h-3 w-3" />
@@ -661,22 +767,41 @@ function QuestionModalDialog({
             />
           </div>
 
-          {/* Status Selection */}
-          <div className="flex items-center justify-between rounded-xl border border-[#dce7f2] bg-[#f8fbff] p-3">
-            <div>
-              <p className="text-xs font-semibold text-[#3f5f7a]">Publishing Status</p>
-              <p className="text-[11px] text-[#8ea1b5]">
-                Draft questions remain hidden from active student quiz sessions.
-              </p>
+          {/* Status Selection and Mandatory */}
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex-1 flex items-center justify-between rounded-xl border border-[#dce7f2] bg-[#f8fbff] p-3">
+              <div>
+                <p className="text-xs font-semibold text-[#3f5f7a]">Publishing Status</p>
+                <p className="text-[11px] text-[#8ea1b5]">
+                  Draft questions remain hidden from active student quiz sessions.
+                </p>
+              </div>
+              <select
+                value={status}
+                onChange={(e) => setStatus(e.target.value)}
+                className="h-8 rounded-lg border border-[#dce7f2] bg-white px-3 text-xs font-bold text-[#3f5f7a] outline-none"
+              >
+                <option value="published">Published</option>
+                <option value="draft">Draft</option>
+              </select>
             </div>
-            <select
-              value={status}
-              onChange={(e) => setStatus(e.target.value)}
-              className="h-8 rounded-lg border border-[#dce7f2] bg-white px-3 text-xs font-bold text-[#3f5f7a] outline-none"
-            >
-              <option value="published">Published</option>
-              <option value="draft">Draft</option>
-            </select>
+
+            <div className="flex-1 flex items-center justify-between rounded-xl border border-[#dce7f2] bg-[#f8fbff] p-3">
+              <div>
+                <p className="text-xs font-semibold text-[#3f5f7a]">Mandatory Question</p>
+                <p className="text-[11px] text-[#8ea1b5]">
+                  Mark this question as mandatory for exams.
+                </p>
+              </div>
+              <label className="flex cursor-pointer items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={isMandatory}
+                  onChange={(e) => setIsMandatory(e.target.checked)}
+                  className="h-4 w-4 cursor-pointer text-[#2563eb] accent-[#2563eb] rounded border-[#dce7f2]"
+                />
+              </label>
+            </div>
           </div>
 
           {/* Modal Footer */}

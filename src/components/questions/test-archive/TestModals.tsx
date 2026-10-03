@@ -232,7 +232,7 @@ function CreateEditTestDialog({
               >
                 <option value="matura">Matura</option>
                 <option value="semi_matura">Semimatura</option>
-                <option value="provime">Entrance Exam</option>
+                <option value="provime">Provime</option>
               </select>
             </div>
             <div>
