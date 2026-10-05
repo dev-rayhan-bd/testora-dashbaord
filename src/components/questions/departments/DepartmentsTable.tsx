@@ -49,13 +49,14 @@ export default function DepartmentsTable({
                     {i + 1}
                   </td>
                   <td className="max-w-[280px] px-4 py-3">
-                    <div className="font-semibold text-[#29425a]">{d.name}</div>
-                    {(d.nameInEnglish || d.nameInAlbanian) && (
-                      <div className="mt-0.5 text-[10px] text-[#7893af]">
-                        {d.nameInEnglish && <span className="mr-2">EN: {d.nameInEnglish}</span>}
-                        {d.nameInAlbanian && <span>AL: {d.nameInAlbanian}</span>}
-                      </div>
-                    )}
+                    <div className="flex flex-col gap-0.5">
+                      <span className="font-semibold text-[#29425a]">
+                        {d.nameInEnglish || d.name}
+                      </span>
+                      <span className="text-[10px] text-[#7893af]">
+                        Slug: <span className="font-mono text-[#587189]">{d.slug || "—"}</span>
+                      </span>
+                    </div>
                   </td>
                   <td className="px-4 py-3">
                     <span className="inline-flex items-center rounded-md border border-slate-200 bg-slate-50 px-2 py-0.5 text-[11px] font-medium text-slate-700">
@@ -66,7 +67,7 @@ export default function DepartmentsTable({
                     {d.createdAt ? new Date(d.createdAt).toLocaleDateString() : "—"}
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <div className="flex items-center justify-end gap-1 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
+                    <div className="flex items-center justify-end gap-1">
                       <button
                         type="button"
                         onClick={() => onEdit(d)}

@@ -682,7 +682,20 @@ export function ViewTestQuestionsModal({ open, testId, onClose }: ViewTestProps)
                         >
                           {String.fromCharCode(65 + optIdx)}
                         </span>
-                        <span className="flex-1">{opt.text}</span>
+                        <div className="flex-1 flex flex-col gap-2 py-1">
+                          {opt.text && <span>{opt.text}</span>}
+                          {opt.imageUrl && (
+                            <div className="relative overflow-hidden rounded-md border border-[#dce7f2] bg-slate-50 w-fit">
+                              <Image
+                                src={opt.imageUrl}
+                                alt={`Option ${String.fromCharCode(65 + optIdx)}`}
+                                width={120}
+                                height={80}
+                                className="object-contain"
+                              />
+                            </div>
+                          )}
+                        </div>
                         {isCorrect && (
                           <span className="inline-flex items-center gap-1 font-bold text-[#15803d]">
                             <CheckCircle className="h-3 w-3" />
@@ -694,12 +707,25 @@ export function ViewTestQuestionsModal({ open, testId, onClose }: ViewTestProps)
                   })}
                 </div>
 
-                {q.explanation && (
+                {(q.explanation || q.explanationImageUrl) && (
                   <div className="mt-3 rounded-lg border border-[#cfe1f5] bg-[#edf6fe] p-2.5">
                     <p className="text-[10px] font-bold text-[#2368af] uppercase">Explanation</p>
-                    <p className="mt-1 text-[11px] text-[#35618b] leading-relaxed">
-                      {q.explanation}
-                    </p>
+                    {q.explanation && (
+                      <p className="mt-1 text-[11px] text-[#35618b] leading-relaxed">
+                        {q.explanation}
+                      </p>
+                    )}
+                    {q.explanationImageUrl && (
+                      <div className="mt-2 overflow-hidden rounded-md border border-[#cbe1f5] bg-white w-fit">
+                        <Image
+                          src={q.explanationImageUrl}
+                          alt="Explanation Image"
+                          width={300}
+                          height={150}
+                          className="max-h-40 object-contain"
+                        />
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

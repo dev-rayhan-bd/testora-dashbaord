@@ -29,7 +29,7 @@ export function formatExamTypeName(examType: string) {
   const t = examType?.toLowerCase() || "";
   if (t === "matura") return "Matura";
   if (t === "semi_matura" || t === "semimatura") return "Semimatura";
-  if (t === "provime") return "Entrance (Provime)";
+  if (t === "provime") return "Provime";
   return examType;
 }
 
@@ -137,22 +137,14 @@ export default function SubjectsTable({
                     {index + 1}
                   </td>
 
-                  {/* Subject Name & Translations */}
+                  {/* Subject Name & Slug */}
                   <td className="px-4 py-3.5">
-                    <div className="flex flex-col">
+                    <div className="flex flex-col gap-0.5">
                       <span className="text-sm font-bold text-[#273d52]">
-                        {subject.name}
+                        {eng || subject.name}
                       </span>
-                      <span className="text-xs text-[#71889e]">
-                        {hasTranslations ? (
-                          <>
-                            English: <span className="text-[#48637e]">{eng || "—"}</span>
-                            {" • "}
-                            AL: <span className="text-[#48637e]">{alb || "—"}</span>
-                          </>
-                        ) : (
-                          <span className="text-[#a4b8cc] italic">No translations provided</span>
-                        )}
+                      <span className="text-[11px] text-[#71889e]">
+                        Slug: <span className="font-mono text-[#48637e]">{subject.slug || "—"}</span>
                       </span>
                     </div>
                   </td>
