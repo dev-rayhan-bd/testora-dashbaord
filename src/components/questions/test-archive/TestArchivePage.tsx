@@ -20,9 +20,11 @@ import {
   Plus,
   RotateCw,
   Search,
+  UploadCloud,
   X,
 } from "lucide-react";
 import { useEffect, useState } from "react";
+import ImportCsvModal from "./ImportCsvModal";
 import DuplicateToolsSection from "./DuplicateToolsSection";
 import TestArchiveTable from "./TestArchiveTable";
 import {
@@ -69,6 +71,7 @@ export default function TestArchivePage() {
   const [viewTestId, setViewTestId] = useState<string | null>(null);
   const [deletingTest, setDeletingTest] = useState<TestArchiveItem | null>(null);
   const [deleteConfirmParams, setDeleteConfirmParams] = useState<{ type: "single" | "bulk", id?: string } | null>(null);
+  const [importCsvOpen, setImportCsvOpen] = useState(false);
 
   // Queries
   const { data: metaData } = useGetMetaFiltersQuery();
@@ -227,6 +230,14 @@ export default function TestArchivePage() {
           >
             <Layers className="h-3.5 w-3.5" />
             Copy Year Questions
+          </button>
+          <button
+            type="button"
+            onClick={() => setImportCsvOpen(true)}
+            className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-[#dce7f2] bg-white px-3 text-xs font-semibold text-[#587189] shadow-xs transition-colors hover:bg-[#f8fbff]"
+          >
+            <UploadCloud className="h-3.5 w-3.5" />
+            Import CSV
           </button>
           <button
             type="button"
@@ -499,6 +510,11 @@ export default function TestArchivePage() {
             executePermanentDelete(deleteConfirmParams.id);
           }
         }}
+      />
+      
+      <ImportCsvModal 
+        open={importCsvOpen} 
+        onClose={() => setImportCsvOpen(false)} 
       />
     </div>
   );

@@ -101,10 +101,14 @@ function QuestionModalDialog({
     return typeof pass === "object" ? pass?._id || "" : pass || "";
   });
   const [explanation, setExplanation] = useState(() => questionToEdit?.explanation || "");
+  const [explanationImageFile, setExplanationImageFile] = useState<File | null>(null);
+  const [explanationImagePreview, setExplanationImagePreview] = useState<string | null>(() => questionToEdit?.explanationImageUrl || null);
+
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(() => questionToEdit?.questionImageUrl || null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const explanationFileInputRef = useRef<HTMLInputElement>(null);
 
   const subjects = metaFilters?.data?.subjects ?? [];
   const faculties = metaFilters?.data?.faculties ?? [];
@@ -234,6 +238,33 @@ function QuestionModalDialog({
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
+  const handleExplanationFileDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      const file = e.dataTransfer.files[0];
+      if (file.type.startsWith("image/")) {
+        setExplanationImageFile(file);
+        setExplanationImagePreview(URL.createObjectURL(file));
+      } else {
+        toast.error("Please upload an image file (PNG, JPG, WEBP)");
+      }
+    }
+  };
+
+  const handleExplanationFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setExplanationImageFile(file);
+      setExplanationImagePreview(URL.createObjectURL(file));
+    }
+  };
+
+  const handleRemoveExplanationImage = () => {
+    setExplanationImageFile(null);
+    setExplanationImagePreview(null);
+    if (explanationFileInputRef.current) explanationFileInputRef.current.value = "";
+  };
+
   const validateForm = () => {
     if (!questionText.trim()) {
       toast.error("Please enter the question text");
@@ -288,6 +319,7 @@ function QuestionModalDialog({
       passage: passage || undefined,
       explanation: explanation.trim() || undefined,
       question_image: imageFile,
+      explanation_image: explanationImageFile,
     };
 
     if (options[0]?.imageFile) payload.option_a_image = options[0].imageFile;
@@ -309,6 +341,7 @@ function QuestionModalDialog({
     setCorrectOptionIndex(0);
     setExplanation("");
     handleRemoveImage();
+    handleRemoveExplanationImage();
   };
 
   const handleSaveAll = async () => {
@@ -456,27 +489,16 @@ function QuestionModalDialog({
 
             <div>
               <label className="mb-1 block text-xs font-semibold text-[#4f6d87]">
-                Access &amp; Difficulty
+                Access
               </label>
-              <div className="grid grid-cols-2 gap-2">
-                <select
-                  value={access}
-                  onChange={(e) => setAccess(e.target.value)}
-                  className="h-9 rounded-lg border border-[#dce7f2] bg-[#f8fbff] px-2 text-xs font-medium text-[#3f5f7a] outline-none transition-colors focus:border-[#7fb3e8] focus:bg-white"
-                >
-                  <option value="free">Free</option>
-                  <option value="premium">Premium</option>
-                </select>
-                <select
-                  value={difficultyLevel}
-                  onChange={(e) => setDifficultyLevel(e.target.value)}
-                  className="h-9 rounded-lg border border-[#dce7f2] bg-[#f8fbff] px-2 text-xs font-medium text-[#3f5f7a] outline-none transition-colors focus:border-[#7fb3e8] focus:bg-white"
-                >
-                  <option value="easy">Easy</option>
-                  <option value="medium">Medium</option>
-                  <option value="hard">Hard</option>
-                </select>
-              </div>
+              <select
+                value={access}
+                onChange={(e) => setAccess(e.target.value)}
+                className="h-9 w-full rounded-lg border border-[#dce7f2] bg-[#f8fbff] px-2 text-xs font-medium text-[#3f5f7a] outline-none transition-colors focus:border-[#7fb3e8] focus:bg-white"
+              >
+                <option value="free">Free</option>
+                <option value="premium">Premium</option>
+              </select>
             </div>
           </div>
 
@@ -618,6 +640,7 @@ function QuestionModalDialog({
                   alt="Question Diagram"
                   width={240}
                   height={140}
+                  unoptimized
                   className="max-h-36 w-auto object-contain bg-slate-50"
                 />
                 <button
@@ -710,7 +733,7 @@ function QuestionModalDialog({
                     {/* Option Image Display / Upload */}
                     {option.imageUrl ? (
                       <div className="relative flex h-8 w-12 shrink-0 items-center justify-center overflow-hidden rounded bg-slate-100 border border-[#dce7f2]">
-                        <Image src={option.imageUrl} alt="Option" fill className="object-cover" />
+                        <Image src={option.imageUrl} alt="Option" fill unoptimized className="object-cover" />
                         <button
                           type="button"
                           onClick={() => handleRemoveOptionImage(idx)}
@@ -758,13 +781,61 @@ function QuestionModalDialog({
             <label className="mb-1 block text-xs font-semibold text-[#4f6d87]">
               Explanation / Solution (Optional)
             </label>
-            <textarea
-              rows={2}
-              value={explanation}
-              onChange={(e) => setExplanation(e.target.value)}
-              placeholder="Add step-by-step reasoning or formula breakdown for students..."
-              className="w-full resize-none rounded-xl border border-[#dce7f2] bg-[#f8fbff] p-3 text-xs text-[#3f5f7a] outline-none transition-colors focus:border-[#7fb3e8] focus:bg-white placeholder:text-[#9ab0c3]"
-            />
+            <div className="flex flex-col gap-2">
+              <textarea
+                rows={2}
+                value={explanation}
+                onChange={(e) => setExplanation(e.target.value)}
+                placeholder="Add step-by-step reasoning or formula breakdown for students..."
+                className="w-full resize-none rounded-xl border border-[#dce7f2] bg-[#f8fbff] p-3 text-xs text-[#3f5f7a] outline-none transition-colors focus:border-[#7fb3e8] focus:bg-white placeholder:text-[#9ab0c3]"
+              />
+              
+              {explanationImagePreview ? (
+                <div className="relative overflow-hidden rounded-xl border border-[#dce7f2] bg-slate-50 p-2">
+                  <Image
+                    src={explanationImagePreview}
+                    alt="Explanation Preview"
+                    width={400}
+                    height={200}
+                    unoptimized
+                    className="mx-auto max-h-32 object-contain"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleRemoveExplanationImage}
+                    className="absolute right-2 top-2 rounded-full bg-white/90 p-1.5 text-[#5e768e] shadow-sm hover:text-rose-600"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+              ) : (
+                <div
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={handleExplanationFileDrop}
+                  className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-[#dce7f2] bg-[#f8fbff] p-4 text-center transition-colors hover:border-[#b0cbe8] hover:bg-[#f0f6fc]"
+                >
+                  <UploadCloud className="mb-1.5 h-5 w-5 text-[#889fb4]" />
+                  <p className="text-[11px] font-medium text-[#4f6d87]">
+                    Drag and drop explanation diagram, or{" "}
+                    <button
+                      type="button"
+                      onClick={() => explanationFileInputRef.current?.click()}
+                      className="font-bold text-[#2563eb] hover:underline"
+                    >
+                      browse
+                    </button>
+                  </p>
+                  <p className="mt-0.5 text-[9px] text-[#90a3b6]">PNG, JPG, or WEBP up to 5MB</p>
+                  <input
+                    type="file"
+                    ref={explanationFileInputRef}
+                    accept="image/png, image/jpeg, image/webp"
+                    onChange={handleExplanationFileSelect}
+                    className="hidden"
+                  />
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Status Selection and Mandatory */}

@@ -142,6 +142,7 @@ export interface CreateQuestionPayload {
   option_b_image?: File | null;
   option_c_image?: File | null;
   option_d_image?: File | null;
+  explanation_image?: File | null;
   questions?: any[];
 }
 
@@ -166,6 +167,7 @@ export interface UpdateQuestionPayload {
   option_b_image?: File | null;
   option_c_image?: File | null;
   option_d_image?: File | null;
+  explanation_image?: File | null;
   questions?: any[];
 }
 
@@ -528,6 +530,7 @@ function buildQuestionFormData(payload: CreateQuestionPayload | UpdateQuestionPa
   if (payload.option_b_image) formData.append("option_b_image", payload.option_b_image);
   if (payload.option_c_image) formData.append("option_c_image", payload.option_c_image);
   if (payload.option_d_image) formData.append("option_d_image", payload.option_d_image);
+  if (payload.explanation_image) formData.append("explanation_image", payload.explanation_image);
 
   if (payload.questions) formData.append("questions", JSON.stringify(payload.questions));
 

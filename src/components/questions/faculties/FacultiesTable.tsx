@@ -47,19 +47,20 @@ export default function FacultiesTable({
                     {i + 1}
                   </td>
                   <td className="max-w-[280px] px-4 py-3">
-                    <div className="font-semibold text-[#29425a]">{f.name}</div>
-                    {(f.nameInEnglish || f.nameInAlbanian) && (
-                      <div className="mt-0.5 text-[10px] text-[#7893af]">
-                        {f.nameInEnglish && <span className="mr-2">EN: {f.nameInEnglish}</span>}
-                        {f.nameInAlbanian && <span>AL: {f.nameInAlbanian}</span>}
-                      </div>
-                    )}
+                    <div className="flex flex-col gap-0.5">
+                      <span className="font-semibold text-[#29425a]">
+                        {f.nameInEnglish || f.name}
+                      </span>
+                      <span className="text-[10px] text-[#7893af]">
+                        Slug: <span className="font-mono text-[#587189]">{f.slug || "—"}</span>
+                      </span>
+                    </div>
                   </td>
                   <td className="px-4 py-3 text-[#6f859a]">
                     {f.createdAt ? new Date(f.createdAt).toLocaleDateString() : "—"}
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <div className="flex items-center justify-end gap-1 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
+                    <div className="flex items-center justify-end gap-1">
                       <button
                         type="button"
                         onClick={() => onEdit(f)}

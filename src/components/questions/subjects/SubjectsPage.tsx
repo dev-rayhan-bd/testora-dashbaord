@@ -22,7 +22,7 @@ const EXAM_TYPE_OPTIONS = [
   { label: "All Exams", value: "all" },
   { label: "Matura", value: "matura" },
   { label: "Semimatura", value: "semi_matura" },
-  { label: "Entrance Exam (Provime)", value: "provime" },
+  { label: "Provime", value: "provime" },
 ];
 
 export default function SubjectsPage() {
@@ -157,7 +157,7 @@ export default function SubjectsPage() {
         <div className="rounded-xl border border-[#dce7f2] bg-white p-3.5 shadow-2xs">
           <div className="flex items-center gap-2 text-xs font-medium text-[#71889e]">
             <Sparkles className="h-3.5 w-3.5 text-purple-600" />
-            Entrance (Provime)
+            Provime
           </div>
           <p className="mt-1 text-xl font-bold text-purple-700">
             {isLoading ? "—" : stats.provimeCount}

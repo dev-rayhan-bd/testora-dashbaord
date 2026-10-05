@@ -185,12 +185,25 @@ function SingleQuestionModal({
           </div>
 
           {/* Explanation */}
-          {question.explanation && (
+          {(question.explanation || question.explanationImageUrl) && (
             <div className="rounded-xl border border-[#cfe1f5] bg-[#edf6fe] p-3.5">
               <p className="text-[11px] font-bold text-[#2368af] uppercase">Solution Explanation</p>
-              <p className="mt-1 text-xs text-[#35618b] leading-relaxed">
-                {question.explanation}
-              </p>
+              {question.explanation && (
+                <p className="mt-1 text-xs text-[#35618b] leading-relaxed">
+                  {question.explanation}
+                </p>
+              )}
+              {question.explanationImageUrl && (
+                <div className="mt-2 overflow-hidden rounded-lg border border-[#cbe1f5] bg-white w-fit">
+                  <Image
+                    src={question.explanationImageUrl}
+                    alt="Explanation Image"
+                    width={400}
+                    height={200}
+                    className="max-h-48 object-contain"
+                  />
+                </div>
+              )}
             </div>
           )}
 
