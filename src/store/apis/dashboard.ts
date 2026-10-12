@@ -1,7 +1,7 @@
 import type { ApiEnvelope } from "./authApi";
 import { baseApi } from "./baseApi";
 
-// ─── Legacy interfaces ────────────────────────────────────────────────────────
+// ─── Legacy interfaces-- ────────────────────────────────────────────────────────
 export interface AdminDashboardStats {
   totalUsers: number;
   activeAccounts: number;
