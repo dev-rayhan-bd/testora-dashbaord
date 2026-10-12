@@ -13,9 +13,9 @@ export const ROUTES = {
   SETTINGS: "/settings",
 } as const; 
 
-export const API_BASE_URL =
+export const API_BASE_URL = 
   process.env.NEXT_PUBLIC_API_URL ??
-  "http://10.10.28.81:5009/api/v1";
+  "http://13.50.88.233:5000/api/v1";
 
 export const PAGINATION_DEFAULTS = {
   PAGE: 1,
