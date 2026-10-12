@@ -59,6 +59,7 @@ export interface QuestionListItem {
   passageCode?: string | null;
   passage?: string | null;
   explanation?: string;
+  explanationImageUrl?: string | null;
   isMandatory?: boolean;
   createdAt: string;
 }
@@ -86,6 +87,7 @@ export interface SingleQuestionResponse {
   correctOptionIndex: number;
   correctAnswer?: string;
   explanation: string;
+  explanationImageUrl?: string | null;
   difficultyLevel: string;
   access: string;
   status: string;
@@ -341,6 +343,7 @@ export interface FacultyItem {
   name: string;
   nameInEnglish?: string;
   nameInAlbanian?: string;
+  slug?: string;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -371,6 +374,7 @@ export interface DepartmentItem {
   name: string;
   nameInEnglish?: string;
   nameInAlbanian?: string;
+  slug?: string;
   faculty: FacultyItem;
   createdAt?: string;
   updatedAt?: string;
