@@ -2,6 +2,7 @@
 
 import { cn } from "@/lib/utils";
 import { ImageIcon } from "lucide-react";
+import MathRenderer from "@/components/common/MathRenderer";
 
 export type AnswerOption = {
   text: string;
@@ -53,13 +54,23 @@ export function AnswerOptionRow({
 
         <div className="flex-1">
           {/* Text input */}
-          <input
-            type="text"
-            value={value}
-            onChange={(e) => onChange(e.target.value)}
-            placeholder={`Option ${letter} text...`}
-            className="w-full rounded-md border border-transparent bg-transparent py-0.5 text-sm text-[#3f5f7a] outline-none placeholder:text-[#9ab0c3] focus:border-[#dce7f2] focus:bg-[#f8fbff] focus:px-2"
-          />
+          <div className="flex items-center gap-2">
+            <input
+              type="text"
+              value={value}
+              onChange={(e) => onChange(e.target.value)}
+              placeholder={`Option ${letter} text (e.g. $\\frac{7}{12}$)...`}
+              className="w-full rounded-md border border-transparent bg-transparent py-0.5 text-sm text-[#3f5f7a] outline-none placeholder:text-[#9ab0c3] focus:border-[#dce7f2] focus:bg-[#f8fbff] focus:px-2"
+            />
+            {value && (/[\\$^_{}]/.test(value) || value.includes("/")) && (
+              <span
+                className="max-w-[140px] truncate rounded bg-white px-2 py-0.5 text-xs text-[#1e3a5f] border border-[#dce7f2] shadow-2xs"
+                title="Formula Preview"
+              >
+                <MathRenderer text={value} inline />
+              </span>
+            )}
+          </div>
 
           {/* Add image */}
           <button

@@ -2,6 +2,7 @@ import { cn } from "@/lib/utils";
 import { useGetQuestionsQuery } from "@/store/apis";
 import { Loader2 } from "lucide-react";
 import { useEffect, useRef, useState, useCallback } from "react";
+import MathRenderer from "@/components/common/MathRenderer";
 
 function statusClass(status: string) {
   return status.toLowerCase() === "published"
@@ -167,10 +168,10 @@ export default function QuestionLinkingSection({
                       />
                     </td>
                     <td className="px-3 py-2 font-semibold text-[#2f86d8]">{row._id.slice(-6).toUpperCase()}</td>
-                    <td className="px-3 py-2 max-w-64" title={row.questionText}>
-                      <p className="line-clamp-2 font-medium text-[#2d4256] leading-snug">
-                        {row.questionText}
-                      </p>
+                    <td className="px-3 py-2 max-w-64">
+                      <div className="line-clamp-2 font-medium text-[#2d4256] leading-snug">
+                        <MathRenderer text={row.questionText} inline />
+                      </div>
                     </td>
                     <td className="px-3 py-2 text-center whitespace-nowrap">
                       {row.isMandatory ? (

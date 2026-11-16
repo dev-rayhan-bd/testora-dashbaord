@@ -1,6 +1,7 @@
 import { previewQuestion } from "@/lib/preview-validation-data";
 import { cn } from "@/lib/utils";
 import { Smartphone } from "lucide-react";
+import MathRenderer from "@/components/common/MathRenderer";
 
 export default function AppPreviewSection() {
   const q = previewQuestion;
@@ -61,7 +62,9 @@ export default function AppPreviewSection() {
             </div>
 
             {/* Question text */}
-            <p className="mt-2 text-[7.5px] leading-relaxed text-[#4a6070]">{q.text}</p>
+            <div className="mt-2 text-[7.5px] leading-relaxed text-[#4a6070]">
+              <MathRenderer text={q.text} inline />
+            </div>
 
             {/* Answer options */}
             <div className="mt-2 space-y-1">
@@ -85,7 +88,7 @@ export default function AppPreviewSection() {
                   >
                     {opt.letter}
                   </span>
-                  {opt.text}
+                  <MathRenderer text={opt.text} inline />
                 </div>
               ))}
             </div>

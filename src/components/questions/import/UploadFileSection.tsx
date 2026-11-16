@@ -50,9 +50,11 @@ export default function UploadFileSection({
   const handleDownloadCsvTemplate = () => {
     const csvHeader =
       "examType,year,subject,faculty,department,questionText,optionA,optionB,optionC,optionD,correctOptionIndex,difficultyLevel,access,explanation\n";
-    const sampleRow =
+    const sampleRow1 =
       'matura,2026,"Gjuhë Shqipe",,"","Cila është figura kryesore stilistike në vargjet e Kadaresë?","Metafora","Simboli","Alegoria","Personifikimi",0,medium,free,"Metafora përdoret për të krijuar imazhe të thella figurative."\n';
-    const blob = new Blob([csvHeader + sampleRow], { type: "text/csv;charset=utf-8;" });
+    const sampleRow2 =
+      'matura,2026,"Matematikë",,"","Llogaritni vlerën e $\\frac{7}{12} + \\frac{5}{12}$","$1$","$\\frac{1}{2}$","$\\frac{7}{6}$","$0$",0,medium,free,"Shuma e $\\frac{7}{12} + \\frac{5}{12} = \\frac{12}{12} = 1$."\n';
+    const blob = new Blob([csvHeader + sampleRow1 + sampleRow2], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
@@ -61,7 +63,7 @@ export default function UploadFileSection({
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
-    toast.success("CSV template downloaded!");
+    toast.success("CSV template with math examples downloaded!");
   };
 
   return (
@@ -150,6 +152,24 @@ export default function UploadFileSection({
             )}
           </>
         )}
+      </div>
+
+      {/* LaTeX & Math Formulas Tip */}
+      <div className="mt-3.5 flex items-start gap-2.5 rounded-lg border border-[#cbe1f5] bg-[#f0f7ff] p-3 text-xs text-[#2b5278]">
+        <span className="shrink-0 text-sm">📐</span>
+        <div>
+          <span className="font-semibold text-[#1a4975]">
+            Mathematical Formulas (LaTeX / KaTeX) Supported:
+          </span>{" "}
+          You can include mathematical formulas anywhere in the CSV (questions, options, or explanations) by enclosing them in dollar signs, e.g.{" "}
+          <code className="rounded bg-white px-1.5 py-0.5 font-mono text-[11px] text-[#2563eb] border border-[#dce7f2]">
+            $\frac{"{7}"}{"{12}"}$
+          </code>{" "}
+          or{" "}
+          <code className="rounded bg-white px-1.5 py-0.5 font-mono text-[11px] text-[#2563eb] border border-[#dce7f2]">
+            $x^2 + y^2 = r^2$
+          </code>. They will be rendered automatically in the dashboard and mobile app.
+        </div>
       </div>
 
       {/* Template downloads and Modal trigger */}

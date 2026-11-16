@@ -32,6 +32,7 @@ import {
 import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+import MathRenderer from "@/components/common/MathRenderer";
 import AddEditQuestionModal from "./AddEditQuestionModal";
 import { DeleteQuestionModal, QuestionStatusModal } from "./QuestionActionModals";
 import { ConfirmDeleteModal } from "./ConfirmDeleteModal";
@@ -116,9 +117,9 @@ function SingleQuestionModal({
           {/* Question text */}
           <div>
             <p className="text-xs font-bold text-[#869cb0] uppercase">Question Prompt</p>
-            <p className="mt-1 text-sm font-semibold leading-relaxed text-[#2f4256]">
-              {question.questionText}
-            </p>
+            <div className="mt-1 text-sm font-semibold leading-relaxed text-[#2f4256]">
+              <MathRenderer text={question.questionText} />
+            </div>
           </div>
 
           {/* Diagram image if present */}
@@ -159,7 +160,11 @@ function SingleQuestionModal({
                       {String.fromCharCode(65 + idx)}
                     </span>
                     <div className="flex-1 flex flex-col gap-2 py-1">
-                      {opt.text && <span>{opt.text}</span>}
+                      {opt.text && (
+                        <div className="leading-snug">
+                          <MathRenderer text={opt.text} inline />
+                        </div>
+                      )}
                       {opt.imageUrl && (
                         <div className="relative overflow-hidden rounded-md border border-[#dce7f2] bg-slate-50 w-fit">
                           <Image
@@ -189,9 +194,9 @@ function SingleQuestionModal({
             <div className="rounded-xl border border-[#cfe1f5] bg-[#edf6fe] p-3.5">
               <p className="text-[11px] font-bold text-[#2368af] uppercase">Solution Explanation</p>
               {question.explanation && (
-                <p className="mt-1 text-xs text-[#35618b] leading-relaxed">
-                  {question.explanation}
-                </p>
+                <div className="mt-1 text-xs text-[#35618b] leading-relaxed">
+                  <MathRenderer text={question.explanation} />
+                </div>
               )}
               {question.explanationImageUrl && (
                 <div className="mt-2 overflow-hidden rounded-lg border border-[#cbe1f5] bg-white w-fit">
@@ -878,16 +883,16 @@ export default function QuestionBankPage() {
 
                       {/* 7. QUESTION TEXT */}
                       <td className="px-3.5 py-3 max-w-72">
-                        <p className="line-clamp-2 font-medium text-[#2d4256] leading-snug">
-                          {q.questionText}
-                        </p>
+                        <div className="line-clamp-2 font-medium text-[#2d4256] leading-snug">
+                          <MathRenderer text={q.questionText} inline />
+                        </div>
                       </td>
 
                       {/* 8. CORRECT ANSWER */}
                       <td className="px-3.5 py-3">
                         <div className="max-w-44">
                           <span title={correctText} className="inline-block w-full truncate rounded-md border border-[#c8ebd4] bg-[#edf8f2] px-2 py-0.5 text-[11px] font-bold text-[#15803d]">
-                            {correctText}
+                            <MathRenderer text={correctText} inline />
                           </span>
                         </div>
                       </td>

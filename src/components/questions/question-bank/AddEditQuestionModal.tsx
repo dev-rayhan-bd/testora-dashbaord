@@ -20,6 +20,8 @@ import {
 import Image from "next/image";
 import { useRef, useState, useEffect } from "react";
 import { toast } from "sonner";
+import MathRenderer from "@/components/common/MathRenderer";
+import MathToolbar from "@/components/common/MathToolbar";
 
 interface Props {
   open: boolean;
@@ -109,6 +111,72 @@ function QuestionModalDialog({
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const explanationFileInputRef = useRef<HTMLInputElement>(null);
+  const questionTextareaRef = useRef<HTMLTextAreaElement>(null);
+  const explanationTextareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const insertIntoQuestionText = (snippet: string) => {
+    const textarea = questionTextareaRef.current;
+    if (!textarea) {
+      setQuestionText((prev) => (prev ? prev + " " + snippet : snippet));
+      return;
+    }
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const selected = questionText.substring(start, end);
+
+    let toInsert = snippet;
+    let replaceStart = start;
+
+    if (selected) {
+      if (snippet === "$x^{2}$") {
+        toInsert = `$${selected}^{2}$`;
+      } else if (snippet === "$x_{1}$") {
+        toInsert = `$${selected}_{1}$`;
+      } else if (snippet === "$\\sqrt{x}$") {
+        toInsert = `$\\sqrt{${selected}}$`;
+      } else if (snippet === "$\\frac{a}{b}$") {
+        toInsert = `$\\frac{${selected}}{b}$`;
+      }
+    } else if (start > 0) {
+      // If user typed a letter right before clicking power/subscript (e.g. typed "a" then clicked x²)
+      const charBefore = questionText[start - 1];
+      if (/[a-zA-Z0-9]/.test(charBefore)) {
+        if (snippet === "$x^{2}$") {
+          replaceStart = start - 1;
+          toInsert = `$${charBefore}^{2}$`;
+        } else if (snippet === "$x_{1}$") {
+          replaceStart = start - 1;
+          toInsert = `$${charBefore}_{1}$`;
+        } else if (snippet === "$^{\\circ}$") {
+          replaceStart = start - 1;
+          toInsert = `$${charBefore}^{\\circ}$`;
+        }
+      }
+    }
+
+    const nextVal = questionText.substring(0, replaceStart) + toInsert + questionText.substring(end);
+    setQuestionText(nextVal);
+    setTimeout(() => {
+      textarea.focus();
+      textarea.setSelectionRange(replaceStart + toInsert.length, replaceStart + toInsert.length);
+    }, 0);
+  };
+
+  const insertIntoExplanation = (snippet: string) => {
+    const textarea = explanationTextareaRef.current;
+    if (!textarea) {
+      setExplanation((prev) => (prev ? prev + " " + snippet : snippet));
+      return;
+    }
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const nextVal = explanation.substring(0, start) + snippet + explanation.substring(end);
+    setExplanation(nextVal);
+    setTimeout(() => {
+      textarea.focus();
+      textarea.setSelectionRange(start + snippet.length, start + snippet.length);
+    }, 0);
+  };
 
   const subjects = metaFilters?.data?.subjects ?? [];
   const faculties = metaFilters?.data?.faculties ?? [];
@@ -616,16 +684,35 @@ function QuestionModalDialog({
 
           {/* Question Text */}
           <div>
-            <label className="mb-1 block text-xs font-semibold text-[#4f6d87]">
-              Question Text <span className="text-rose-500">*</span>
-            </label>
+            <div className="mb-1 flex items-center justify-between">
+              <label className="block text-xs font-semibold text-[#4f6d87]">
+                Question Text <span className="text-rose-500">*</span>
+              </label>
+            </div>
+            <MathToolbar onInsert={insertIntoQuestionText} className="mb-1.5" />
             <textarea
+              ref={questionTextareaRef}
               rows={3}
               value={questionText}
               onChange={(e) => setQuestionText(e.target.value)}
-              placeholder="Enter the question prompt or equation..."
+              placeholder="Enter the question prompt or equation (e.g. $\frac{7}{12}$ or $x^2 + y^2 = r^2$)..."
               className="w-full resize-none rounded-xl border border-[#dce7f2] bg-[#f8fbff] p-3 text-xs text-[#3f5f7a] outline-none transition-colors focus:border-[#7fb3e8] focus:bg-white placeholder:text-[#9ab0c3]"
             />
+            {questionText.trim() && (
+              <div className="mt-2 rounded-xl border border-[#cbe1f5] bg-[#f8fbff] p-3">
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-[#2563eb]">
+                    Mathematical &amp; Text Live Preview
+                  </span>
+                  <span className="text-[10px] text-[#7d93a8]">
+                    Live student render
+                  </span>
+                </div>
+                <div className="text-xs text-[#2e4c69] leading-relaxed break-words">
+                  <MathRenderer text={questionText} />
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Drag & Drop Question Image Dropzone */}
@@ -726,9 +813,18 @@ function QuestionModalDialog({
                       type="text"
                       value={option.text}
                       onChange={(e) => handleOptionChange(idx, e.target.value)}
-                      placeholder={`Option ${String.fromCharCode(65 + idx)} text...`}
+                      placeholder={`Option ${String.fromCharCode(65 + idx)} text (e.g. $\\frac{7}{12}$)...`}
                       className="h-8 flex-1 bg-transparent px-2 text-xs text-[#3f5f7a] outline-none placeholder:text-[#9ab0c3]"
                     />
+
+                    {option.text && (/[\\$^_{}]/.test(option.text) || option.text.includes("/")) && (
+                      <div
+                        className="max-w-[140px] truncate rounded bg-white border border-[#cbe1f5] px-2 py-0.5 text-xs text-[#1e3a5f] shadow-2xs"
+                        title="Formula Preview"
+                      >
+                        <MathRenderer text={option.text} inline />
+                      </div>
+                    )}
 
                     {/* Option Image Display / Upload */}
                     {option.imageUrl ? (
@@ -778,17 +874,32 @@ function QuestionModalDialog({
 
           {/* Explanation */}
           <div>
-            <label className="mb-1 block text-xs font-semibold text-[#4f6d87]">
-              Explanation / Solution (Optional)
-            </label>
+            <div className="mb-1.5 flex items-center justify-between">
+              <label className="block text-xs font-semibold text-[#4f6d87]">
+                Explanation / Solution (Optional)
+              </label>
+            </div>
+            <MathToolbar onInsert={insertIntoExplanation} className="mb-1.5" />
             <div className="flex flex-col gap-2">
               <textarea
+                ref={explanationTextareaRef}
                 rows={2}
                 value={explanation}
                 onChange={(e) => setExplanation(e.target.value)}
                 placeholder="Add step-by-step reasoning or formula breakdown for students..."
                 className="w-full resize-none rounded-xl border border-[#dce7f2] bg-[#f8fbff] p-3 text-xs text-[#3f5f7a] outline-none transition-colors focus:border-[#7fb3e8] focus:bg-white placeholder:text-[#9ab0c3]"
               />
+
+              {explanation.trim() && (
+                <div className="rounded-xl border border-[#cfe1f5] bg-[#edf6fe] p-3">
+                  <span className="block mb-1 text-[10px] font-bold uppercase tracking-wider text-[#2368af]">
+                    Explanation Live Preview
+                  </span>
+                  <div className="text-xs text-[#35618b] leading-relaxed break-words">
+                    <MathRenderer text={explanation} />
+                  </div>
+                </div>
+              )}
               
               {explanationImagePreview ? (
                 <div className="relative overflow-hidden rounded-xl border border-[#dce7f2] bg-slate-50 p-2">

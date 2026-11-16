@@ -24,6 +24,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
+import MathRenderer from "@/components/common/MathRenderer";
 import QuestionLinkingSection from "./create/QuestionLinkingSection";
 
 interface CreateEditProps {
@@ -647,7 +648,9 @@ export function ViewTestQuestionsModal({ open, testId, onClose }: ViewTestProps)
                     )}
                   </div>
                 </div>
-                <p className="mb-3 text-xs font-medium text-[#3f5f7a]">{q.questionText}</p>
+                <div className="mb-3 text-xs font-medium text-[#3f5f7a] leading-relaxed">
+                  <MathRenderer text={q.questionText} />
+                </div>
                 
                 {q.questionImageUrl && (
                   <div className="mb-3 overflow-hidden rounded-xl border border-[#dce7f2] bg-slate-50 p-2">
@@ -683,7 +686,11 @@ export function ViewTestQuestionsModal({ open, testId, onClose }: ViewTestProps)
                           {String.fromCharCode(65 + optIdx)}
                         </span>
                         <div className="flex-1 flex flex-col gap-2 py-1">
-                          {opt.text && <span>{opt.text}</span>}
+                          {opt.text && (
+                            <div className="leading-snug">
+                              <MathRenderer text={opt.text} inline />
+                            </div>
+                          )}
                           {opt.imageUrl && (
                             <div className="relative overflow-hidden rounded-md border border-[#dce7f2] bg-slate-50 w-fit">
                               <Image
@@ -711,9 +718,9 @@ export function ViewTestQuestionsModal({ open, testId, onClose }: ViewTestProps)
                   <div className="mt-3 rounded-lg border border-[#cfe1f5] bg-[#edf6fe] p-2.5">
                     <p className="text-[10px] font-bold text-[#2368af] uppercase">Explanation</p>
                     {q.explanation && (
-                      <p className="mt-1 text-[11px] text-[#35618b] leading-relaxed">
-                        {q.explanation}
-                      </p>
+                      <div className="mt-1 text-[11px] text-[#35618b] leading-relaxed">
+                        <MathRenderer text={q.explanation} />
+                      </div>
                     )}
                     {q.explanationImageUrl && (
                       <div className="mt-2 overflow-hidden rounded-md border border-[#cbe1f5] bg-white w-fit">

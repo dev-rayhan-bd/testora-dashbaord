@@ -3,6 +3,7 @@
 import { AlertTriangle, CheckCircle, EyeOff, FileText, Loader2, Trash2, X } from "lucide-react";
 import { useState } from "react";
 import type { QuestionListItem } from "@/store/apis";
+import MathRenderer from "@/components/common/MathRenderer";
 
 interface StatusModalProps {
   open: boolean;
@@ -184,9 +185,9 @@ export function DeleteQuestionModal({
 
         <div className="px-5 pb-4">
           <div className="rounded-xl border border-[#e8edf2] bg-[#f8fbff] p-3 text-xs text-[#4f6d87]">
-            <p className="line-clamp-2 font-medium text-[#2d4256]">
-              &ldquo;{question.questionText}&rdquo;
-            </p>
+            <div className="line-clamp-2 font-medium text-[#2d4256]">
+              &ldquo;<MathRenderer text={question.questionText} inline />&rdquo;
+            </div>
             <div className="mt-2 flex items-center gap-2 text-[11px] text-[#869ab0]">
               <span className="capitalize">{question.examType}</span>
               <span>•</span>

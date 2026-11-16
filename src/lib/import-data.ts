@@ -14,7 +14,7 @@ export type FieldMappingRow = {
 export const fieldMappingRows: FieldMappingRow[] = [
   {
     systemField: "question_text",
-    description: "Question body text",
+    description: "Question body text (supports LaTeX math e.g. $\\frac{a}{b}$)",
     excelColumn: "Column A",
     fileColumn: "Question Text",
     status: "Mapped",
@@ -22,7 +22,7 @@ export const fieldMappingRows: FieldMappingRow[] = [
   },
   {
     systemField: "option_a",
-    description: "Answer option A",
+    description: "Answer option A (supports LaTeX math)",
     excelColumn: "Column B",
     fileColumn: "Option A",
     status: "Mapped",
@@ -30,7 +30,7 @@ export const fieldMappingRows: FieldMappingRow[] = [
   },
   {
     systemField: "option_b",
-    description: "Answer option B",
+    description: "Answer option B (supports LaTeX math)",
     excelColumn: "Column C",
     fileColumn: "Option B",
     status: "Mapped",
@@ -38,7 +38,7 @@ export const fieldMappingRows: FieldMappingRow[] = [
   },
   {
     systemField: "option_c",
-    description: "Answer option C",
+    description: "Answer option C (supports LaTeX math)",
     excelColumn: "Column D",
     fileColumn: "Option C",
     status: "Mapped",
@@ -46,7 +46,7 @@ export const fieldMappingRows: FieldMappingRow[] = [
   },
   {
     systemField: "option_d",
-    description: "Answer option D",
+    description: "Answer option D (supports LaTeX math)",
     excelColumn: "Column E",
     fileColumn: "Option D",
     status: "Mapped",
