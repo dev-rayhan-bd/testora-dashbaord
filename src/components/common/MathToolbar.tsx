@@ -96,11 +96,46 @@ export default function MathToolbar({ onInsert, className = "" }: MathToolbarPro
       : ALL_SYMBOLS.filter((s) => s.category === selectedCategory)
     : ALL_SYMBOLS.filter((s) => QUICK_BAR_LABELS.includes(s.label));
 
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-    setCopiedExample(text);
-    toast.success("Example copied! You can paste it into your question.");
-    setTimeout(() => setCopiedExample(null), 2000);
+  const copyToClipboard = async (text: string, e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    let success = false;
+
+    // 1. Try modern navigator.clipboard if in secure context
+    try {
+      if (typeof navigator !== "undefined" && navigator.clipboard?.writeText && window.isSecureContext) {
+        await navigator.clipboard.writeText(text);
+        success = true;
+      }
+    } catch {
+      success = false;
+    }
+
+    // 2. Guaranteed fallback using temporary textarea (works in HTTP, iframes, and all browsers)
+    if (!success && typeof document !== "undefined") {
+      try {
+        const textArea = document.createElement("textarea");
+        textArea.value = text;
+        textArea.style.position = "fixed";
+        textArea.style.left = "-999999px";
+        textArea.style.top = "-999999px";
+        textArea.setAttribute("readonly", "");
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        success = document.execCommand("copy");
+        document.body.removeChild(textArea);
+      } catch (err) {
+        console.error("Fallback copy failed:", err);
+      }
+    }
+
+    if (success) {
+      setCopiedExample(text);
+      toast.success(`Copied: ${text}`);
+      setTimeout(() => setCopiedExample(null), 2000);
+    } else {
+      toast.error("Could not copy automatically. Please copy manually.");
+    }
   };
 
   return (
@@ -209,35 +244,124 @@ export default function MathToolbar({ onInsert, className = "" }: MathToolbarPro
                 📐 Mathematics &amp; Algebra
               </span>
               <div className="space-y-1.5 font-mono text-[11px]">
-                <div className="flex items-center justify-between bg-white p-1 rounded border border-[#eef3f8]">
-                  <span><code>$\frac{"{7}"}{"{12}"}$</code> &rarr; 7/12</span>
-                  <button type="button" onClick={() => copyToClipboard("$\\frac{7}{12}$")} title="Copy">
-                    {copiedExample === "$\\frac{7}{12}$" ? <Check className="h-3 w-3 text-emerald-600" /> : <Copy className="h-3 w-3 text-[#8ea1b5]" />}
-                  </button>
+                <div className="flex items-center justify-between gap-1 bg-white p-1 px-1.5 rounded border border-[#eef3f8] hover:border-[#c5dcf2]">
+                  <span className="truncate flex-1 cursor-pointer" onClick={() => onInsert("$\\frac{7}{12}$")} title="Click to insert">
+                    <code>$\frac{"{7}"}{"{12}"}$</code> <span className="text-[#889fb3] font-sans text-[10px]">&rarr; 7/12</span>
+                  </span>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => onInsert("$\\frac{7}{12}$")}
+                      className="rounded px-1.5 py-0.5 text-[10px] font-semibold text-[#2563eb] hover:bg-[#edf5fc]"
+                      title="Insert into question text"
+                    >
+                      Insert
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => copyToClipboard("$\\frac{7}{12}$", e)}
+                      className="rounded p-1 text-[#6b8299] hover:bg-[#edf5fc] hover:text-[#2563eb]"
+                      title="Copy to clipboard"
+                    >
+                      {copiedExample === "$\\frac{7}{12}$" ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Copy className="h-3.5 w-3.5" />}
+                    </button>
+                  </div>
                 </div>
-                <div className="flex items-center justify-between bg-white p-1 rounded border border-[#eef3f8]">
-                  <span><code>$a^2 + b^2 = c^2$</code></span>
-                  <button type="button" onClick={() => copyToClipboard("$a^2 + b^2 = c^2$")} title="Copy">
-                    {copiedExample === "$a^2 + b^2 = c^2$" ? <Check className="h-3 w-3 text-emerald-600" /> : <Copy className="h-3 w-3 text-[#8ea1b5]" />}
-                  </button>
+
+                <div className="flex items-center justify-between gap-1 bg-white p-1 px-1.5 rounded border border-[#eef3f8] hover:border-[#c5dcf2]">
+                  <span className="truncate flex-1 cursor-pointer" onClick={() => onInsert("$a^2 + b^2 = c^2$")} title="Click to insert">
+                    <code>$a^2 + b^2 = c^2$</code>
+                  </span>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => onInsert("$a^2 + b^2 = c^2$")}
+                      className="rounded px-1.5 py-0.5 text-[10px] font-semibold text-[#2563eb] hover:bg-[#edf5fc]"
+                      title="Insert into question text"
+                    >
+                      Insert
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => copyToClipboard("$a^2 + b^2 = c^2$", e)}
+                      className="rounded p-1 text-[#6b8299] hover:bg-[#edf5fc] hover:text-[#2563eb]"
+                      title="Copy to clipboard"
+                    >
+                      {copiedExample === "$a^2 + b^2 = c^2$" ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Copy className="h-3.5 w-3.5" />}
+                    </button>
+                  </div>
                 </div>
-                <div className="flex items-center justify-between bg-white p-1 rounded border border-[#eef3f8]">
-                  <span><code>$\sqrt{"{16}"} = 4$</code></span>
-                  <button type="button" onClick={() => copyToClipboard("$\\sqrt{16} = 4$")} title="Copy">
-                    {copiedExample === "$\\sqrt{16} = 4$" ? <Check className="h-3 w-3 text-emerald-600" /> : <Copy className="h-3 w-3 text-[#8ea1b5]" />}
-                  </button>
+
+                <div className="flex items-center justify-between gap-1 bg-white p-1 px-1.5 rounded border border-[#eef3f8] hover:border-[#c5dcf2]">
+                  <span className="truncate flex-1 cursor-pointer" onClick={() => onInsert("$\\sqrt{16} = 4$")} title="Click to insert">
+                    <code>$\sqrt{"{16}"} = 4$</code>
+                  </span>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => onInsert("$\\sqrt{16} = 4$")}
+                      className="rounded px-1.5 py-0.5 text-[10px] font-semibold text-[#2563eb] hover:bg-[#edf5fc]"
+                      title="Insert into question text"
+                    >
+                      Insert
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => copyToClipboard("$\\sqrt{16} = 4$", e)}
+                      className="rounded p-1 text-[#6b8299] hover:bg-[#edf5fc] hover:text-[#2563eb]"
+                      title="Copy to clipboard"
+                    >
+                      {copiedExample === "$\\sqrt{16} = 4$" ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Copy className="h-3.5 w-3.5" />}
+                    </button>
+                  </div>
                 </div>
-                <div className="flex items-center justify-between bg-white p-1 rounded border border-[#eef3f8]">
-                  <span><code>$\sqrt[3]{"{27}"} = 3$</code></span>
-                  <button type="button" onClick={() => copyToClipboard("$\\sqrt[3]{27} = 3$")} title="Copy">
-                    {copiedExample === "$\\sqrt[3]{27} = 3$" ? <Check className="h-3 w-3 text-emerald-600" /> : <Copy className="h-3 w-3 text-[#8ea1b5]" />}
-                  </button>
+
+                <div className="flex items-center justify-between gap-1 bg-white p-1 px-1.5 rounded border border-[#eef3f8] hover:border-[#c5dcf2]">
+                  <span className="truncate flex-1 cursor-pointer" onClick={() => onInsert("$\\sqrt[3]{27} = 3$")} title="Click to insert">
+                    <code>$\sqrt[3]{"{27}"} = 3$</code>
+                  </span>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => onInsert("$\\sqrt[3]{27} = 3$")}
+                      className="rounded px-1.5 py-0.5 text-[10px] font-semibold text-[#2563eb] hover:bg-[#edf5fc]"
+                      title="Insert into question text"
+                    >
+                      Insert
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => copyToClipboard("$\\sqrt[3]{27} = 3$", e)}
+                      className="rounded p-1 text-[#6b8299] hover:bg-[#edf5fc] hover:text-[#2563eb]"
+                      title="Copy to clipboard"
+                    >
+                      {copiedExample === "$\\sqrt[3]{27} = 3$" ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Copy className="h-3.5 w-3.5" />}
+                    </button>
+                  </div>
                 </div>
-                <div className="flex items-center justify-between bg-white p-1 rounded border border-[#eef3f8]">
-                  <span><code>$x = \frac{"{-b \\pm \\sqrt{b^2-4ac}}"}{"{2a}"}$</code></span>
-                  <button type="button" onClick={() => copyToClipboard("$x = \\frac{-b \\pm \\sqrt{b^2-4ac}}{2a}$")} title="Copy">
-                    {copiedExample === "$x = \\frac{-b \\pm \\sqrt{b^2-4ac}}{2a}$" ? <Check className="h-3 w-3 text-emerald-600" /> : <Copy className="h-3 w-3 text-[#8ea1b5]" />}
-                  </button>
+
+                <div className="flex items-center justify-between gap-1 bg-white p-1 px-1.5 rounded border border-[#eef3f8] hover:border-[#c5dcf2]">
+                  <span className="truncate flex-1 cursor-pointer" onClick={() => onInsert("$x = \\frac{-b \\pm \\sqrt{b^2-4ac}}{2a}$")} title="Click to insert">
+                    <code>$x = \frac{"{-b \\pm \\sqrt{b^2-4ac}}"}{"{2a}"}$</code>
+                  </span>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => onInsert("$x = \\frac{-b \\pm \\sqrt{b^2-4ac}}{2a}$")}
+                      className="rounded px-1.5 py-0.5 text-[10px] font-semibold text-[#2563eb] hover:bg-[#edf5fc]"
+                      title="Insert into question text"
+                    >
+                      Insert
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => copyToClipboard("$x = \\frac{-b \\pm \\sqrt{b^2-4ac}}{2a}$", e)}
+                      className="rounded p-1 text-[#6b8299] hover:bg-[#edf5fc] hover:text-[#2563eb]"
+                      title="Copy to clipboard"
+                    >
+                      {copiedExample === "$x = \\frac{-b \\pm \\sqrt{b^2-4ac}}{2a}$" ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Copy className="h-3.5 w-3.5" />}
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -248,35 +372,124 @@ export default function MathToolbar({ onInsert, className = "" }: MathToolbarPro
                 ⚡ Physics &amp; Chemistry
               </span>
               <div className="space-y-1.5 font-mono text-[11px]">
-                <div className="flex items-center justify-between bg-white p-1 rounded border border-[#eef3f8]">
-                  <span><code>$F = G \frac{"{m_1 m_2}"}{"{r^2}"}$</code></span>
-                  <button type="button" onClick={() => copyToClipboard("$F = G \\frac{m_1 m_2}{r^2}$")} title="Copy">
-                    {copiedExample === "$F = G \\frac{m_1 m_2}{r^2}$" ? <Check className="h-3 w-3 text-emerald-600" /> : <Copy className="h-3 w-3 text-[#8ea1b5]" />}
-                  </button>
+                <div className="flex items-center justify-between gap-1 bg-white p-1 px-1.5 rounded border border-[#eef3f8] hover:border-[#c5dcf2]">
+                  <span className="truncate flex-1 cursor-pointer" onClick={() => onInsert("$F = G \\frac{m_1 m_2}{r^2}$")} title="Click to insert">
+                    <code>$F = G \frac{"{m_1 m_2}"}{"{r^2}"}$</code>
+                  </span>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => onInsert("$F = G \\frac{m_1 m_2}{r^2}$")}
+                      className="rounded px-1.5 py-0.5 text-[10px] font-semibold text-[#059669] hover:bg-[#edfbf4]"
+                      title="Insert into question text"
+                    >
+                      Insert
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => copyToClipboard("$F = G \\frac{m_1 m_2}{r^2}$", e)}
+                      className="rounded p-1 text-[#6b8299] hover:bg-[#edf5fc] hover:text-[#059669]"
+                      title="Copy to clipboard"
+                    >
+                      {copiedExample === "$F = G \\frac{m_1 m_2}{r^2}$" ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Copy className="h-3.5 w-3.5" />}
+                    </button>
+                  </div>
                 </div>
-                <div className="flex items-center justify-between bg-white p-1 rounded border border-[#eef3f8]">
-                  <span><code>$\lambda = \frac{"{v}"}{"{f}"}$</code></span>
-                  <button type="button" onClick={() => copyToClipboard("$\\lambda = \\frac{v}{f}$")} title="Copy">
-                    {copiedExample === "$\\lambda = \\frac{v}{f}$" ? <Check className="h-3 w-3 text-emerald-600" /> : <Copy className="h-3 w-3 text-[#8ea1b5]" />}
-                  </button>
+
+                <div className="flex items-center justify-between gap-1 bg-white p-1 px-1.5 rounded border border-[#eef3f8] hover:border-[#c5dcf2]">
+                  <span className="truncate flex-1 cursor-pointer" onClick={() => onInsert("$\\lambda = \\frac{v}{f}$")} title="Click to insert">
+                    <code>$\lambda = \frac{"{v}"}{"{f}"}$</code>
+                  </span>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => onInsert("$\\lambda = \\frac{v}{f}$")}
+                      className="rounded px-1.5 py-0.5 text-[10px] font-semibold text-[#059669] hover:bg-[#edfbf4]"
+                      title="Insert into question text"
+                    >
+                      Insert
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => copyToClipboard("$\\lambda = \\frac{v}{f}$", e)}
+                      className="rounded p-1 text-[#6b8299] hover:bg-[#edf5fc] hover:text-[#059669]"
+                      title="Copy to clipboard"
+                    >
+                      {copiedExample === "$\\lambda = \\frac{v}{f}$" ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Copy className="h-3.5 w-3.5" />}
+                    </button>
+                  </div>
                 </div>
-                <div className="flex items-center justify-between bg-white p-1 rounded border border-[#eef3f8]">
-                  <span><code>$2\text{"{H}"}_2 + \text{"{O}"}_2 \rightarrow 2\text{"{H}"}_2\text{"{O}"}$</code></span>
-                  <button type="button" onClick={() => copyToClipboard("$2\\text{H}_2 + \\text{O}_2 \\rightarrow 2\\text{H}_2\\text{O}$")} title="Copy">
-                    {copiedExample === "$2\\text{H}_2 + \\text{O}_2 \\rightarrow 2\\text{H}_2\\text{O}$" ? <Check className="h-3 w-3 text-emerald-600" /> : <Copy className="h-3 w-3 text-[#8ea1b5]" />}
-                  </button>
+
+                <div className="flex items-center justify-between gap-1 bg-white p-1 px-1.5 rounded border border-[#eef3f8] hover:border-[#c5dcf2]">
+                  <span className="truncate flex-1 cursor-pointer" onClick={() => onInsert("$2\\text{H}_2 + \\text{O}_2 \\rightarrow 2\\text{H}_2\\text{O}$")} title="Click to insert">
+                    <code>$2\text{"{H}"}_2 + \text{"{O}"}_2 \rightarrow 2\text{"{H}"}_2\text{"{O}"}$</code>
+                  </span>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => onInsert("$2\\text{H}_2 + \\text{O}_2 \\rightarrow 2\\text{H}_2\\text{O}$")}
+                      className="rounded px-1.5 py-0.5 text-[10px] font-semibold text-[#059669] hover:bg-[#edfbf4]"
+                      title="Insert into question text"
+                    >
+                      Insert
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => copyToClipboard("$2\\text{H}_2 + \\text{O}_2 \\rightarrow 2\\text{H}_2\\text{O}$", e)}
+                      className="rounded p-1 text-[#6b8299] hover:bg-[#edf5fc] hover:text-[#059669]"
+                      title="Copy to clipboard"
+                    >
+                      {copiedExample === "$2\\text{H}_2 + \\text{O}_2 \\rightarrow 2\\text{H}_2\\text{O}$" ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Copy className="h-3.5 w-3.5" />}
+                    </button>
+                  </div>
                 </div>
-                <div className="flex items-center justify-between bg-white p-1 rounded border border-[#eef3f8]">
-                  <span><code>$\text{"{Ca}"}^{"{2+}"} + 2\text{"{Cl}"}^-$</code></span>
-                  <button type="button" onClick={() => copyToClipboard("$\\text{Ca}^{2+} + 2\\text{Cl}^-$")} title="Copy">
-                    {copiedExample === "$\\text{Ca}^{2+} + 2\\text{Cl}^-$" ? <Check className="h-3 w-3 text-emerald-600" /> : <Copy className="h-3 w-3 text-[#8ea1b5]" />}
-                  </button>
+
+                <div className="flex items-center justify-between gap-1 bg-white p-1 px-1.5 rounded border border-[#eef3f8] hover:border-[#c5dcf2]">
+                  <span className="truncate flex-1 cursor-pointer" onClick={() => onInsert("$\\text{Ca}^{2+} + 2\\text{Cl}^-$")} title="Click to insert">
+                    <code>$\text{"{Ca}"}^{"{2+}"} + 2\text{"{Cl}"}^-$</code>
+                  </span>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => onInsert("$\\text{Ca}^{2+} + 2\\text{Cl}^-$")}
+                      className="rounded px-1.5 py-0.5 text-[10px] font-semibold text-[#059669] hover:bg-[#edfbf4]"
+                      title="Insert into question text"
+                    >
+                      Insert
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => copyToClipboard("$\\text{Ca}^{2+} + 2\\text{Cl}^-$", e)}
+                      className="rounded p-1 text-[#6b8299] hover:bg-[#edf5fc] hover:text-[#059669]"
+                      title="Copy to clipboard"
+                    >
+                      {copiedExample === "$\\text{Ca}^{2+} + 2\\text{Cl}^-$" ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Copy className="h-3.5 w-3.5" />}
+                    </button>
+                  </div>
                 </div>
-                <div className="flex items-center justify-between bg-white p-1 rounded border border-[#eef3f8]">
-                  <span><code>$R = 50\ \Omega,\ T = 25^\circ\text{"{C}"}$</code></span>
-                  <button type="button" onClick={() => copyToClipboard("$R = 50\\ \\Omega,\\ T = 25^\\circ\\text{C}$")} title="Copy">
-                    {copiedExample === "$R = 50\\ \\Omega,\\ T = 25^\\circ\\text{C}$" ? <Check className="h-3 w-3 text-emerald-600" /> : <Copy className="h-3 w-3 text-[#8ea1b5]" />}
-                  </button>
+
+                <div className="flex items-center justify-between gap-1 bg-white p-1 px-1.5 rounded border border-[#eef3f8] hover:border-[#c5dcf2]">
+                  <span className="truncate flex-1 cursor-pointer" onClick={() => onInsert("$R = 50\\ \\Omega,\\ T = 25^\\circ\\text{C}$")} title="Click to insert">
+                    <code>$R = 50\ \Omega,\ T = 25^\circ\text{"{C}"}$</code>
+                  </span>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => onInsert("$R = 50\\ \\Omega,\\ T = 25^\\circ\\text{C}$")}
+                      className="rounded px-1.5 py-0.5 text-[10px] font-semibold text-[#059669] hover:bg-[#edfbf4]"
+                      title="Insert into question text"
+                    >
+                      Insert
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => copyToClipboard("$R = 50\\ \\Omega,\\ T = 25^\\circ\\text{C}$", e)}
+                      className="rounded p-1 text-[#6b8299] hover:bg-[#edf5fc] hover:text-[#059669]"
+                      title="Copy to clipboard"
+                    >
+                      {copiedExample === "$R = 50\\ \\Omega,\\ T = 25^\\circ\\text{C}$" ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Copy className="h-3.5 w-3.5" />}
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
