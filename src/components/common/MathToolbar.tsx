@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { ChevronDown, ChevronUp, Copy, Check, HelpCircle, Sparkles } from "lucide-react";
 import { toast } from "sonner";
+import { copyToClipboard as copyUtil } from "@/lib/utils";
 
 interface MathToolbarProps {
   onInsert: (snippet: string) => void;
@@ -98,37 +99,7 @@ export default function MathToolbar({ onInsert, className = "" }: MathToolbarPro
 
   const copyToClipboard = async (text: string, e?: React.MouseEvent) => {
     e?.stopPropagation();
-    let success = false;
-
-    // 1. Try modern navigator.clipboard if in secure context
-    try {
-      if (typeof navigator !== "undefined" && navigator.clipboard?.writeText && window.isSecureContext) {
-        await navigator.clipboard.writeText(text);
-        success = true;
-      }
-    } catch {
-      success = false;
-    }
-
-    // 2. Guaranteed fallback using temporary textarea (works in HTTP, iframes, and all browsers)
-    if (!success && typeof document !== "undefined") {
-      try {
-        const textArea = document.createElement("textarea");
-        textArea.value = text;
-        textArea.style.position = "fixed";
-        textArea.style.left = "-999999px";
-        textArea.style.top = "-999999px";
-        textArea.setAttribute("readonly", "");
-        document.body.appendChild(textArea);
-        textArea.focus();
-        textArea.select();
-        success = document.execCommand("copy");
-        document.body.removeChild(textArea);
-      } catch (err) {
-        console.error("Fallback copy failed:", err);
-      }
-    }
-
+    const success = await copyUtil(text);
     if (success) {
       setCopiedExample(text);
       toast.success(`Copied: ${text}`);

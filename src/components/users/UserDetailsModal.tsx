@@ -17,6 +17,7 @@ import {
 import Image from "next/image";
 import { useState } from "react";
 import { toast } from "sonner";
+import { copyToClipboard } from "@/lib/utils";
 import type { UserManagementRow } from "./UserRow";
 
 type Props = {
@@ -31,12 +32,16 @@ export default function UserDetailsModal({ open, user, onClose, onAction }: Prop
 
   if (!open || !user) return null;
 
-  const handleCopyId = () => {
+  const handleCopyId = async () => {
     if (user.id) {
-      navigator.clipboard.writeText(user.id);
-      setCopied(true);
-      toast.success("User ID copied to clipboard!");
-      setTimeout(() => setCopied(false), 2000);
+      const ok = await copyToClipboard(user.id);
+      if (ok) {
+        setCopied(true);
+        toast.success("User ID copied to clipboard!");
+        setTimeout(() => setCopied(false), 2000);
+      } else {
+        toast.error("Failed to copy User ID");
+      }
     }
   };
 

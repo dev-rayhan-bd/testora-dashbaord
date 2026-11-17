@@ -1,6 +1,6 @@
 "use client";
 
-import { cn } from "@/lib/utils";
+import { cn, copyToClipboard } from "@/lib/utils";
 import type { TestArchiveItem } from "@/store/apis";
 import { Check, Copy, Eye, Pencil, Trash2 } from "lucide-react";
 import { useState } from "react";
@@ -36,12 +36,12 @@ export default function ArchiveRow({
   const handleCopyCode = async (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!row.testCode) return;
-    try {
-      await navigator.clipboard.writeText(row.testCode);
+    const ok = await copyToClipboard(row.testCode);
+    if (ok) {
       setCopied(true);
       toast.success(`Copied test code: ${row.testCode}`);
       setTimeout(() => setCopied(false), 2000);
-    } catch {
+    } else {
       toast.error("Failed to copy test code");
     }
   };

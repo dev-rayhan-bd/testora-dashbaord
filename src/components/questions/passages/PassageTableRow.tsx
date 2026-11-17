@@ -1,6 +1,6 @@
 "use client";
 
-import { cn } from "@/lib/utils";
+import { cn, copyToClipboard } from "@/lib/utils";
 import type { PassageItem } from "@/store/apis";
 import { Check, Copy, Eye, Pencil, Power, Trash2 } from "lucide-react";
 import Image from "next/image";
@@ -28,12 +28,12 @@ export default function PassageTableRow({
 
   const handleCopyCode = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    try {
-      await navigator.clipboard.writeText(row.passageCode);
+    const ok = await copyToClipboard(row.passageCode);
+    if (ok) {
       setCopied(true);
       toast.success(`Copied: ${row.passageCode}`);
       setTimeout(() => setCopied(false), 2000);
-    } catch {
+    } else {
       toast.error("Failed to copy code");
     }
   };
