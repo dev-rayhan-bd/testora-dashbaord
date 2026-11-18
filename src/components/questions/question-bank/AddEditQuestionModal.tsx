@@ -18,7 +18,7 @@ import {
   X,
 } from "lucide-react";
 import Image from "next/image";
-import { useRef, useState, useEffect } from "react";
+import { useRef, useState, useEffect, useMemo } from "react";
 import { toast } from "sonner";
 import MathRenderer from "@/components/common/MathRenderer";
 import MathToolbar from "@/components/common/MathToolbar";
@@ -213,14 +213,20 @@ function QuestionModalDialog({
   }, [isEditing, questionToEdit, subjects, faculties, passages, subject, faculty, passage]);
 
   // Filter subjects for current examType, but fallback to showing all if strict matching fails
-  const filteredSubjects = subjects.filter((s) => {
-    if (s._id === subject) return true;
-    if (!s.examType) return true; // Show all if examType is missing
-    const sExam = typeof s.examType === "string" ? s.examType : (s.examType as any).name || (s.examType as any).slug || "";
-    // If it's an ID (24 hex chars), just show it. Otherwise match strictly.
-    if (sExam.length === 24 && /^[0-9a-fA-F]{24}$/.test(sExam)) return true;
-    return sExam.toLowerCase() === examType.toLowerCase();
-  });
+  const availableSubjects = useMemo(() => {
+    const matched = subjects.filter((s) => {
+      if (s._id === subject) return true;
+      if (!s.examType) return true;
+      const sExam =
+        typeof s.examType === "string"
+          ? s.examType
+          : (s.examType as any)?.name || (s.examType as any)?.slug || "";
+      if (sExam.length === 24 && /^[0-9a-fA-F]{24}$/.test(sExam)) return true;
+      return sExam.toLowerCase() === examType.toLowerCase();
+    });
+
+    return matched.length > 0 ? matched : subjects;
+  }, [subjects, subject, examType]);
 
   // Filter departments for selected faculty
   const filteredDepartments = allDepartments.filter(
@@ -361,8 +367,12 @@ function QuestionModalDialog({
         toast.error("Please select at least one department");
         return false;
       }
+      if (!subject && availableSubjects.length > 0) {
+        toast.error("Please select a subject for entrance exam (e.g. Biology, Chemistry)");
+        return false;
+      }
     } else {
-      if (!subject && filteredSubjects.length > 0) {
+      if (!subject && availableSubjects.length > 0) {
         toast.error("Please select a subject");
         return false;
       }
@@ -381,7 +391,7 @@ function QuestionModalDialog({
       difficultyLevel,
       status,
       isMandatory,
-      subject: examType !== "provime" ? subject : undefined,
+      subject: subject || undefined,
       faculty: examType === "provime" ? faculty : undefined,
       departments: examType === "provime" ? departments : undefined,
       passage: passage || undefined,
@@ -529,7 +539,6 @@ function QuestionModalDialog({
                 value={examType}
                 onChange={(e) => {
                   setExamType(e.target.value);
-                  setSubject("");
                   setFaculty("");
                   setDepartments([]);
                 }}
@@ -570,31 +579,72 @@ function QuestionModalDialog({
             </div>
           </div>
 
-          {/* Dynamic Subject vs Faculty/Departments */}
+          {/* Classification: Subject, Faculty, Departments, Passage */}
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            {examType === "provime" ? (
-              <>
-                <div>
-                  <label className="mb-1 block text-xs font-semibold text-[#4f6d87]">
-                    Faculty <span className="text-rose-500">*</span>
-                  </label>
-                  <select
-                    value={faculty}
-                    onChange={(e) => {
-                      setFaculty(e.target.value);
-                      setDepartments([]);
-                    }}
-                    className="h-9 w-full rounded-lg border border-[#dce7f2] bg-[#f8fbff] px-3 text-xs font-medium text-[#3f5f7a] outline-none transition-colors focus:border-[#7fb3e8] focus:bg-white"
-                  >
-                    <option value="">Select Faculty...</option>
-                    {faculties.map((f) => (
-                      <option key={f._id} value={f._id}>
-                        {(f as any).nameInEnglish || f.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+            {/* Subject is ALWAYS required and visible for all exam types including Provime */}
+            <div>
+              <label className="mb-1 block text-xs font-semibold text-[#4f6d87]">
+                Subject <span className="text-rose-500">*</span>
+              </label>
+              <select
+                value={subject}
+                onChange={(e) => setSubject(e.target.value)}
+                className="h-9 w-full rounded-lg border border-[#dce7f2] bg-[#f8fbff] px-3 text-xs font-medium text-[#3f5f7a] outline-none transition-colors focus:border-[#7fb3e8] focus:bg-white"
+              >
+                <option value="">Select Subject...</option>
+                {availableSubjects.map((s: any) => (
+                  <option key={s._id} value={s._id}>
+                    {(s as any).nameInEnglish || s.name}
+                  </option>
+                ))}
+              </select>
+            </div>
 
+            {/* If Entrance Exam, Faculty dropdown; otherwise Linked Passage */}
+            {examType === "provime" ? (
+              <div>
+                <label className="mb-1 block text-xs font-semibold text-[#4f6d87]">
+                  Faculty <span className="text-rose-500">*</span>
+                </label>
+                <select
+                  value={faculty}
+                  onChange={(e) => {
+                    setFaculty(e.target.value);
+                    setDepartments([]);
+                  }}
+                  className="h-9 w-full rounded-lg border border-[#dce7f2] bg-[#f8fbff] px-3 text-xs font-medium text-[#3f5f7a] outline-none transition-colors focus:border-[#7fb3e8] focus:bg-white"
+                >
+                  <option value="">Select Faculty...</option>
+                  {faculties.map((f) => (
+                    <option key={f._id} value={f._id}>
+                      {(f as any).nameInEnglish || f.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ) : (
+              <div>
+                <label className="mb-1 block text-xs font-semibold text-[#4f6d87]">
+                  Linked Passage (Optional)
+                </label>
+                <select
+                  value={passage}
+                  onChange={(e) => setPassage(e.target.value)}
+                  className="h-9 w-full rounded-lg border border-[#dce7f2] bg-[#f8fbff] px-3 text-xs font-medium text-[#3f5f7a] outline-none transition-colors focus:border-[#7fb3e8] focus:bg-white"
+                >
+                  <option value="">None (Independent Question)</option>
+                  {passages.map((p) => (
+                    <option key={p._id} value={p._id}>
+                      {p.passageCode} — {p.title}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {/* If Entrance Exam, show Departments and Passage on the next row */}
+            {examType === "provime" && (
+              <>
                 <div>
                   <label className="mb-1 block text-xs font-semibold text-[#4f6d87]">
                     Departments <span className="text-rose-500">*</span>
@@ -607,7 +657,7 @@ function QuestionModalDialog({
                         Array.from(e.target.selectedOptions, (option) => option.value)
                       )
                     }
-                    className="min-h-16 w-full rounded-lg border border-[#dce7f2] bg-[#f8fbff] p-2 text-xs text-[#3f5f7a] outline-none transition-colors focus:border-[#7fb3e8] focus:bg-white"
+                    className="min-h-18 w-full rounded-lg border border-[#dce7f2] bg-[#f8fbff] p-2 text-xs text-[#3f5f7a] outline-none transition-colors focus:border-[#7fb3e8] focus:bg-white"
                   >
                     {filteredDepartments.map((d) => (
                       <option key={d._id} value={d._id}>
@@ -616,48 +666,29 @@ function QuestionModalDialog({
                     ))}
                   </select>
                   <p className="mt-0.5 text-[10px] text-[#8ea1b5]">
-                    Hold Ctrl/Cmd to select multiple departments.
+                    Hold Ctrl (Windows) or Cmd (Mac) to select multiple departments.
                   </p>
                 </div>
-              </>
-            ) : (
-              <div>
-                <label className="mb-1 block text-xs font-semibold text-[#4f6d87]">
-                  Subject <span className="text-rose-500">*</span>
-                </label>
-                <select
-                  value={subject}
-                  onChange={(e) => setSubject(e.target.value)}
-                  className="h-9 w-full rounded-lg border border-[#dce7f2] bg-[#f8fbff] px-3 text-xs font-medium text-[#3f5f7a] outline-none transition-colors focus:border-[#7fb3e8] focus:bg-white"
-                >
-                  <option value="">Select Subject...</option>
-                  {filteredSubjects.map((s) => (
-                    <option key={s._id} value={s._id}>
-                      {(s as any).nameInEnglish || s.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
 
-            {/* Optional Passage Link */}
-            <div>
-              <label className="mb-1 block text-xs font-semibold text-[#4f6d87]">
-                Linked Passage (Optional)
-              </label>
-              <select
-                value={passage}
-                onChange={(e) => setPassage(e.target.value)}
-                className="h-9 w-full rounded-lg border border-[#dce7f2] bg-[#f8fbff] px-3 text-xs font-medium text-[#3f5f7a] outline-none transition-colors focus:border-[#7fb3e8] focus:bg-white"
-              >
-                <option value="">None (Independent Question)</option>
-                {passages.map((p) => (
-                  <option key={p._id} value={p._id}>
-                    {p.passageCode} — {p.title}
-                  </option>
-                ))}
-              </select>
-            </div>
+                <div>
+                  <label className="mb-1 block text-xs font-semibold text-[#4f6d87]">
+                    Linked Passage (Optional)
+                  </label>
+                  <select
+                    value={passage}
+                    onChange={(e) => setPassage(e.target.value)}
+                    className="h-9 w-full rounded-lg border border-[#dce7f2] bg-[#f8fbff] px-3 text-xs font-medium text-[#3f5f7a] outline-none transition-colors focus:border-[#7fb3e8] focus:bg-white"
+                  >
+                    <option value="">None (Independent Question)</option>
+                    {passages.map((p) => (
+                      <option key={p._id} value={p._id}>
+                        {p.passageCode} — {p.title}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </>
+            )}
           </div>
 
           {draftQuestions.length > 0 && !isEditing && (

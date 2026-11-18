@@ -64,7 +64,7 @@ export default function AddEditQuestionPage() {
         return { ...prev, faculty: value, department: "", subject: "" };
       }
       if (field === "department") {
-        return { ...prev, department: value, subject: "" };
+        return { ...prev, department: value };
       }
       return { ...prev, [field]: value };
     });

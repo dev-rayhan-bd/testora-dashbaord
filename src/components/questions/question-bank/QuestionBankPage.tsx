@@ -93,7 +93,7 @@ function SingleQuestionModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#2d4056]/40 p-4 backdrop-blur-xs">
       <div className="flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-[#dce7f2] bg-white shadow-2xl">
         <div className="flex items-center justify-between border-b border-[#e6edf5] px-6 py-4">
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <span
               className={cn(
                 "rounded-md border px-2 py-0.5 text-[11px] font-bold uppercase",
@@ -103,6 +103,18 @@ function SingleQuestionModal({
               {question.examType}
             </span>
             <span className="text-xs font-semibold text-[#8299af]">Year {question.year}</span>
+            {/* Subject Badge */}
+            {((typeof question.subject === "object" ? (question.subject as any)?.nameInEnglish || question.subject?.name : null) || question.subjectName) && (
+              <span className="rounded-md border border-[#cbe1f5] bg-[#edf5fc] px-2 py-0.5 text-[11px] font-bold text-[#2563eb]">
+                {(typeof question.subject === "object" ? (question.subject as any)?.nameInEnglish || question.subject?.name : null) || question.subjectName}
+              </span>
+            )}
+            {/* Faculty Badge */}
+            {((typeof question.faculty === "object" ? (question.faculty as any)?.nameInEnglish || question.faculty?.name : null) || question.facultyName) && (
+              <span className="rounded-md border border-[#dfd8f5] bg-[#f4f0fd] px-2 py-0.5 text-[11px] font-bold text-[#7c3aed]">
+                {(typeof question.faculty === "object" ? (question.faculty as any)?.nameInEnglish || question.faculty?.name : null) || question.facultyName}
+              </span>
+            )}
           </div>
           <button
             type="button"
@@ -599,29 +611,27 @@ export default function QuestionBankPage() {
               </select>
             </label>
 
-            {/* Subject (for matura/semi_matura) */}
-            {examTypeFilter !== "provime" && (
-              <label className="inline-flex items-center gap-1 rounded-lg border border-[#dce7f2] bg-[#f8fbff] px-2.5 py-1.5 text-xs text-[#587189]">
-                <span className="text-[#889fb4] font-medium">Subject:</span>
-                <select
-                  value={subjectFilter}
-                  onChange={(e) => {
-                    setSubjectFilter(e.target.value);
-                    setPage(1);
-                  }}
-                  className="cursor-pointer bg-transparent text-xs font-semibold text-[#3f5f7a] outline-none"
-                >
-                  <option value="All">All Subjects</option>
-                  {(meta?.subjects ?? [])
-                    .filter((s) => examTypeFilter === "All" || s.examType === examTypeFilter)
-                    .map((s) => (
-                      <option key={s._id} value={s.name}>
-                        {s.name}
-                      </option>
-                    ))}
-                </select>
-              </label>
-            )}
+            {/* Subject Filter (Always available for all exams, including Provime) */}
+            <label className="inline-flex items-center gap-1 rounded-lg border border-[#dce7f2] bg-[#f8fbff] px-2.5 py-1.5 text-xs text-[#587189]">
+              <span className="text-[#889fb4] font-medium">Subject:</span>
+              <select
+                value={subjectFilter}
+                onChange={(e) => {
+                  setSubjectFilter(e.target.value);
+                  setPage(1);
+                }}
+                className="cursor-pointer bg-transparent text-xs font-semibold text-[#3f5f7a] outline-none"
+              >
+                <option value="All">All Subjects</option>
+                {(meta?.subjects ?? [])
+                  .filter((s) => examTypeFilter === "All" || !s.examType || s.examType === examTypeFilter || examTypeFilter === "provime")
+                  .map((s) => (
+                    <option key={s._id} value={s.name}>
+                      {(s as any).nameInEnglish || s.name}
+                    </option>
+                  ))}
+              </select>
+            </label>
 
             {/* Faculty (for provime) */}
             {examTypeFilter === "provime" && (
@@ -837,13 +847,27 @@ export default function QuestionBankPage() {
 
                       {/* 4. SUBJECT / FACULTY */}
                       <td className="px-3.5 py-3 whitespace-nowrap text-[#405872] font-medium">
-                        {(typeof q.subject === "object" ? q.subject?.nameInEnglish || q.subject?.name : null) || 
-                         (typeof q.subject === "string" ? (() => { const s = meta?.subjects?.find(x => x._id === q.subject); return (s as any)?.nameInEnglish || s?.name; })() : null) || 
-                         q.subjectName || 
-                         (typeof q.faculty === "object" ? q.faculty?.nameInEnglish || q.faculty?.name : null) || 
-                         (typeof q.faculty === "string" ? (() => { const f = meta?.faculties?.find(x => x._id === q.faculty); return (f as any)?.nameInEnglish || f?.name; })() : null) || 
-                         q.facultyName || 
-                         "—"}
+                        {(() => {
+                          const subjName = 
+                            (typeof q.subject === "object" ? q.subject?.nameInEnglish || q.subject?.name : null) || 
+                            (typeof q.subject === "string" ? (() => { const s = meta?.subjects?.find(x => x._id === q.subject); return (s as any)?.nameInEnglish || s?.name; })() : null) || 
+                            q.subjectName;
+
+                          const facName = 
+                            (typeof q.faculty === "object" ? q.faculty?.nameInEnglish || q.faculty?.name : null) || 
+                            (typeof q.faculty === "string" ? (() => { const f = meta?.faculties?.find(x => x._id === q.faculty); return (f as any)?.nameInEnglish || f?.name; })() : null) || 
+                            q.facultyName;
+
+                          if (subjName && facName) {
+                            return (
+                              <div className="flex flex-col">
+                                <span className="font-semibold text-[#2f4256]">{subjName}</span>
+                                <span className="text-[10px] text-[#7890a8]">{facName}</span>
+                              </div>
+                            );
+                          }
+                          return subjName || facName || "—";
+                        })()}
                       </td>
 
                       {/* 5. ACCESS */}

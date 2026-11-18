@@ -54,7 +54,9 @@ export default function UploadFileSection({
       'matura,2026,"Gjuhë Shqipe",,"","Cila është figura kryesore stilistike në vargjet e Kadaresë?","Metafora","Simboli","Alegoria","Personifikimi",0,medium,free,"Metafora përdoret për të krijuar imazhe të thella figurative."\n';
     const sampleRow2 =
       'matura,2026,"Matematikë",,"","Llogaritni vlerën e $\\frac{7}{12} + \\frac{5}{12}$","$1$","$\\frac{1}{2}$","$\\frac{7}{6}$","$0$",0,medium,free,"Shuma e $\\frac{7}{12} + \\frac{5}{12} = \\frac{12}{12} = 1$."\n';
-    const blob = new Blob([csvHeader + sampleRow1 + sampleRow2], { type: "text/csv;charset=utf-8;" });
+    const sampleRow3 =
+      'provime,2026,"Kimi","Fakulteti i Mjekësisë","Mjekësi e Përgjithshme","Cili është numri atomik i karbonit?","6","12","14","8",0,medium,free,"Numri atomik i karbonit është 6."\n';
+    const blob = new Blob([csvHeader + sampleRow1 + sampleRow2 + sampleRow3], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;

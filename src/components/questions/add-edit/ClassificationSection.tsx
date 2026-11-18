@@ -151,7 +151,6 @@ export default function ClassificationSection({ data, onChange }: Classification
                 value={data.department}
                 onChange={(v) => {
                   onChange("department", v);
-                  onChange("subject", "");
                 }}
                 options={departmentOptions.length > 0 ? departmentOptions : ["—"]}
                 placeholder="Select department"

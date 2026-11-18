@@ -116,7 +116,7 @@ function CreateEditTestDialog({
           testType,
           access,
           status,
-          subject: examType !== "provime" ? subject || undefined : undefined,
+          subject: subject || undefined,
           faculty: examType === "provime" ? faculty || undefined : undefined,
           questionIds,
         }).unwrap();
@@ -130,7 +130,7 @@ function CreateEditTestDialog({
           testType,
           access,
           status,
-          subject: examType !== "provime" ? subject || undefined : undefined,
+          subject: subject || undefined,
           faculty: examType === "provime" ? faculty || undefined : undefined,
           questionIds,
         }).unwrap();
@@ -272,23 +272,41 @@ function CreateEditTestDialog({
             </div>
           </div>
 
-          {examType === "provime" && (
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
-              <label className="mb-1 block text-xs font-semibold text-[#4f6d87]">Faculty</label>
+              <label className="mb-1 block text-xs font-semibold text-[#4f6d87]">Subject</label>
               <select
-                value={faculty}
-                onChange={(e) => setFaculty(e.target.value)}
+                value={subject}
+                onChange={(e) => setSubject(e.target.value)}
                 className="h-9 w-full rounded-lg border border-[#dce7f2] bg-[#f8fbff] px-3 text-xs text-[#3f5f7a] outline-none"
               >
-                <option value="">Select Faculty...</option>
-                {faculties.map((f) => (
-                  <option key={f._id} value={f._id}>
-                    {(f as any).nameInEnglish || f.name}
+                <option value="">Select Subject (Optional)...</option>
+                {(subjects.length > 0 ? subjects : (metaFilters?.data?.subjects ?? [])).map((s) => (
+                  <option key={s._id} value={s._id}>
+                    {(s as any).nameInEnglish || s.name}
                   </option>
                 ))}
               </select>
             </div>
-          )}
+
+            {examType === "provime" && (
+              <div>
+                <label className="mb-1 block text-xs font-semibold text-[#4f6d87]">Faculty</label>
+                <select
+                  value={faculty}
+                  onChange={(e) => setFaculty(e.target.value)}
+                  className="h-9 w-full rounded-lg border border-[#dce7f2] bg-[#f8fbff] px-3 text-xs text-[#3f5f7a] outline-none"
+                >
+                  <option value="">Select Faculty...</option>
+                  {faculties.map((f) => (
+                    <option key={f._id} value={f._id}>
+                      {(f as any).nameInEnglish || f.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+          </div>
 
           <div className="mt-4 pt-4 border-t border-[#e6edf5]">
             <h4 className="mb-2 text-sm font-bold text-[#2f4256]">Link Questions</h4>
